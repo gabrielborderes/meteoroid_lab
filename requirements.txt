@@ -1,0 +1,11 @@
+dasst
+rebound
+reboundx
+matplotlib
+numpy
+scipy
+mpi4py
+h5py
+tqdm
+
+astropy?
