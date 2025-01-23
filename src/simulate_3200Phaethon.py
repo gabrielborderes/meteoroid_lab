@@ -34,8 +34,12 @@ from config_3200Phaethon import (
     solar_system_objects,
     init_sim_file,
     particle_bulk_density,
-    times,
+    sim_time,
     Nout,
+    body_radius,
+    Eje_p_R,
+    T_comet,
+    RotVel,
 )
 
 LONG_ARCH = True
@@ -43,11 +47,11 @@ LONG_ARCH = True
 particle_file = data_folder / "particles.npz"
 
 if size <= 1:
-    filename = data_folder / "cache_12P_outgassing_whipple_all.bin"
-    save_file = data_folder / "ephemerides_12P_whipple_all.h5"
+    filename = data_folder / "cache_3200_Phaenton_all.bin"
+    save_file = data_folder / "ephemerides_3200_Phaenton_all.h5"
 else:
-    filename = data_folder / f"cache_12P_outgassing_whipple_process{rank}.bin"
-    save_file = data_folder / f"ephemerides_12P_whipple_process{rank}.h5"
+    filename = data_folder / f"cache_3200_Phaenton_{rank}.bin"
+    save_file = data_folder / f"ephemerides_3200_Phaenton_{rank}.h5"
 
 
 pdata = np.load(particle_file)
@@ -60,6 +64,9 @@ nb = len(solar_system_objects)
 
 sim = rebound.Simulation(str(init_sim_file))
 
+
+
+
 sim.move_to_com()
 # Configure simulation
 sim.integrator = "ias15"
@@ -71,6 +78,14 @@ sim.integrator = "ias15"
 # Set the integration time
 ps = sim.particles
 
+
+pscomet = ps["1983 TB"]
+
+print(np.degrees(pscomet.f))
+print(np.degrees(pscomet.inc))
+
+
+
 rebx = reboundx.Extras(sim)
 rf = rebx.load_force("radiation_forces")
 rebx.add_force(rf)
@@ -78,12 +93,7 @@ rf.params["c"] = 2.99792458e8
 ps["Sun"].params["radiation_source"] = 1
 
 
-# Comet physical parameters (dist-km)
-comet_R = 34.0
-Eje_p_R = 10.0 * comet_R
-T_comet = 57.0  # hour (https://www.astronomerstelegram.org/?read=16508)
-RotVel = 2.0 * np.pi / (T_comet * 3600.0)
-# Comet physical parameters
+
 
 iter_inds = np.arange(rank, N_part, size, dtype=np.int64)
 N_process_part = len(iter_inds)
@@ -96,9 +106,9 @@ vy = np.zeros((sim.N + N_process_part, Nout))
 vz = np.zeros((sim.N + N_process_part, Nout))
 id_part = 0
 
-pbar = tqdm(total=len(times), position=rank)
+pbar = tqdm(total=len(sim_time), position=rank)
 
-for ti, t in enumerate(times):
+for ti, t in enumerate(sim_time):
     sim.integrate(t)
     pbar.update(1)
 
@@ -114,8 +124,8 @@ for ti, t in enumerate(times):
             # m/s -> km/s
             part_vel = particle_velocities[id_part] * 1.0e-3
             # Consider the velocity as rotating in plane of the inertial frame
-            CRotVel_x = -RotVel * comet_R * shell_part[id_part, 2]
-            CRotVel_y = RotVel * comet_R * shell_part[id_part, 1]
+            CRotVel_x = -RotVel * body_radius * shell_part[id_part, 2]
+            CRotVel_y = RotVel * body_radius * shell_part[id_part, 1]
             #      = orbital pos. + Ejection pos. (outburst)
             part_x = psc.x + Eje_p_R * shell_part[id_part, 1]
             part_y = psc.y + Eje_p_R * shell_part[id_part, 2]
@@ -177,7 +187,7 @@ pbar.close()
 # Save data
 with h5py.File(str(save_file), "w") as hf:
     hf.create_dataset("index", data=iter_inds)
-    hf.create_dataset("t", data=times)
+    hf.create_dataset("t", data=sim_time)
     hf.create_dataset("x", data=x)
     hf.create_dataset("y", data=y)
     hf.create_dataset("z", data=z)
@@ -187,23 +197,23 @@ with h5py.File(str(save_file), "w") as hf:
 
 sim.save_to_file(str(filename))
 
-t0 = sim.t
-
-year = 365.25 * 24.0 * 3600.0
-frame_step = 0.5 * year
-total_time = 350 * year
-
-long_filename = data_folder / "cache_12P_outgassing_whipple_ALL_LONG.bin"
-print(f"sim time {t0/year}")
-times = t0 + np.arange(frame_step, total_time, frame_step)
-
-pbar = tqdm(total=len(times))
-
-sim.save_to_file(str(long_filename), delete_file=True)
-for ti, t in enumerate(times):
-    print("next step: ", t/year)
-    sim.integrate(t)
-    pbar.update(1)
-    sim.save_to_file(str(long_filename))
-
-pbar.close()
+# t0 = sim.t
+#
+# year = 365.25 * 24.0 * 3600.0
+# frame_step = 0.5 * year
+# total_time = 350 * year
+#
+# long_filename = data_folder / "cache_12P_outgassing_whipple_ALL_LONG.bin"
+# print(f"sim time {t0/year}")
+# times = t0 + np.arange(frame_step, total_time, frame_step)
+#
+# pbar = tqdm(total=len(times))
+#
+# sim.save_to_file(str(long_filename), delete_file=True)
+# for ti, t in enumerate(times):
+#     print("next step: ", t/year)
+#     sim.integrate(t)
+#     pbar.update(1)
+#     sim.save_to_file(str(long_filename))
+#
+# pbar.close()

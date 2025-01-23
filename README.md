@@ -4,16 +4,9 @@ python particles.py
 
 
 
-
-
-
-
-
-
-
-
-
-
+python src/particles_gen_3200Phaenton.py
+           
+python src/simulate_3200Phaethon.py or mpirun -np 30 python src/simulate_3200Phaethon.py
 
 
 

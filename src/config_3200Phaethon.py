@@ -1,21 +1,29 @@
 import pathlib
 import numpy as np
 
-data_folder = pathlib.Path("../data").resolve()
+data_folder = pathlib.Path("data").resolve()
 if not data_folder.is_dir():
     data_folder.mkdir()
 
 init_sim_file = data_folder / "cache_3200Phaenton_init.bin"
 
 # SIMULATION Parameters
-sim_years = 1.35
-Frame_betw_days = 1
 day = 24.0 * 3600.0
-Frame_betw = Frame_betw_days * day
-Delta_T = sim_years * 365.25 * day
+year = 365.25 * day
 
-times = np.arange(0, Delta_T, Frame_betw)
-Nout = len(times)
+sim_tf = 2100. * year
+outgass_tf = 1.35 * year
+
+sim_delta = 2. * year
+outgass_delta = 1. * day
+
+outgass_time = np.arange(0,outgass_tf ,outgass_delta)
+sim_wo_outgass = np.arange(outgass_tf + day, sim_tf ,sim_delta)
+
+
+sim_time = np.concatenate([outgass_time,sim_wo_outgass])
+Nout = len(sim_time)
+
 
 # WHYPLE Model Parameter ####
 body_radius = 3.125e3  # (m)
@@ -27,6 +35,18 @@ particle_bulk_density = 1.5e3
 gas_molecule_mass = 20 * 1.661e-24 * 1e-3
 surface_temperature_coeff = 300
 K_drag = 26.0 / 9.0
+
+# Particle parameters
+N_part = 1000
+min_size_log = -4
+max_size_log = -1
+
+# Comet physical parameters (dist-km)
+Eje_p_R = 10.0 * body_radius
+T_comet = 3.604  # hour (https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html#/?sstr=3200)
+RotVel = 2.0 * np.pi / (T_comet * 3600.0)
+
+
 
 # THE COMET MUST BE THE LAST IN THE LIST
 solar_system_objects = [

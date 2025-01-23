@@ -11,7 +11,7 @@ from config_3200Phaethon import (
     data_folder,
     init_sim_file,
     solar_system_objects,
-    times,
+    outgass_time,
     body_radius,
     albedo,
     solar_luminosity,
@@ -21,6 +21,9 @@ from config_3200Phaethon import (
     gas_molecule_mass,
     surface_temperature_coeff,
     K_drag,
+    N_part,
+    min_size_log,
+    max_size_log,
 )
 
 np.random.seed(426347637)
@@ -30,9 +33,7 @@ particle_file = data_folder / "particles.npz"
 #  SETING PARTICLE SPHERICAL SHELL
 #####################
 # TEST PARTILCES
-N_part = 10000
-min_size_log = -4
-max_size_log = -1
+
 
 if not init_sim_file.is_file():
     sim = rebound.Simulation()
@@ -46,7 +47,10 @@ if not init_sim_file.is_file():
         print("A socket error occured. Maybe Horizons is down?")
         sys.exit(0)  # we ignore the error and exit
 
+
     sim.N_active = sim.N - 1
+    t = -1850.5*365.25*24.*3600.
+    sim.integrate(t)
     sim.save_to_file(str(init_sim_file))
 
 sim = rebound.Simulation(str(init_sim_file))
@@ -54,22 +58,20 @@ sim = rebound.Simulation(str(init_sim_file))
 n_bd = len(solar_system_objects)
 ps = sim.particles
 
-t = -1850.00290573183*365.25*24.*3600.
 
-sim.integrate(t)
-pscomet = ps["1983 TB"]
-
-print(np.degrees(pscomet.inc))
-
-sys.exit()
+# pscomet = ps["1983 TB"]
+#
+# print(np.degrees(pscomet.f))
+# print(np.degrees(pscomet.inc))
+# sys.exit()
 
 
 
-ejection_possible = np.full((len(times), ), False, dtype=bool)
+ejection_possible = np.full((len(outgass_time), ), False, dtype=bool)
 
-masslosses = np.empty_like(times)
-helio_distances = np.empty_like(times)
-for ti, t in tqdm(enumerate(times), total=len(times)):
+masslosses = np.empty_like(outgass_time)
+helio_distances = np.empty_like(outgass_time)
+for ti, t in tqdm(enumerate(outgass_time), total=len(outgass_time)):
     sim.integrate(t)
 
     psc = ps[solar_system_objects[-1]]
@@ -128,7 +130,7 @@ particle_distances = np.full((N_part, ), np.nan, dtype=np.float64)
 
 part_ind = 0
 max_tries = 100
-for step_i, num in tqdm(enumerate(N_activity), total=len(times)):
+for step_i, num in tqdm(enumerate(N_activity), total=len(outgass_time)):
     for pi in range(num):
         particle_mass = (
             particle_bulk_density * (4.0 / 3.0) * np.pi * shell_part[part_ind, 0] ** 3
@@ -174,7 +176,7 @@ print(f"{np.sum(np.isnan(particle_velocities))} particles failed ejecting")
 
 np.savez(
     particle_file,
-    times=times,
+    times=outgass_time,
     shell_part=shell_part,
     radius=shell_part[:, 0],
     N_activity=N_activity,
