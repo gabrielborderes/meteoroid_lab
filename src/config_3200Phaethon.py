@@ -6,6 +6,10 @@ if not data_folder.is_dir():
     data_folder.mkdir()
 
 init_sim_file = data_folder / "cache_3200Phaenton_init.bin"
+particle_file = data_folder / "particles_3200_Phaenthon.npz"
+
+
+
 
 # SIMULATION Parameters
 day = 24.0 * 3600.0

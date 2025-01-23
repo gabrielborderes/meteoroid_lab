@@ -24,11 +24,11 @@ from config_3200Phaethon import (
     N_part,
     min_size_log,
     max_size_log,
+    particle_file,
 )
 
 np.random.seed(426347637)
 
-particle_file = data_folder / "particles.npz"
 
 #  SETING PARTICLE SPHERICAL SHELL
 #####################
