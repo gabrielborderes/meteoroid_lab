@@ -1,42 +1,24 @@
 #use for monitoring paralel simulation - nvtop
 
-python particles.py
 
+# Standard sequence for running the code
+```bash
 
-
-python src/particles_gen_3200Phaenton.py
+## First step : Prepare particles for simulation 
+python src/particles_gen_3200Phaethon.py
            
-python src/simulate_3200Phaethon.py or mpirun -np 30 python src/simulate_3200Phaethon.py
+## Second step: run the simulation with or without mpi           
+python src/simulate_3200Phaethon.py 
+   or 
+mpirun -np 5 python src/simulate_3200Phaethon.py
+
+## Third step: if you runned with mpi   
+python src/collect_3200Phaethon.py
+
+## Fourth step: plot the results   
+python src/plot_3panels_3200Phaethon.py
 
 
-
-
-
-
-
-# Whipple
-```bash
-python particles.py
-mpirun -np 30 python simulate.py
-python collect.py
-mpirun -np 30 python plot_simulate.py
-./compile_plot_simulate.sh data/plots_movie data/plots_movie.mp4
-mpirun -np 30 python plot_simulate_close.py
-./compile_plot_simulate.sh data/plots_movie_close data/plots_movie_close.mp4
 ```
-
-# Outburst
-```bash
-python particles_outburst.py
-mpirun -np 30 python simulate_outburst.py
-python collect_outburst.py
-mpirun -np 30 python plot_simulate_outburst.py
-./compile_plot_simulate.sh data/plots_movie_outburst data/plots_movie_outburst.mp4
-mpirun -np 30 python plot_simulate_close_outburst.py
-./compile_plot_simulate.sh data/plots_movie_close_outburst data/plots_movie_close_outburst.mp4
-
-
-
-mpirun -n 30 --map-by :OVERSUBSCRIBE python plot_simulate_test.py 
 
 ```

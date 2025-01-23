@@ -6,12 +6,10 @@ from config_3200Phaethon import (
     data_folder,
     solar_system_objects,
     particle_file,
+    ephem_file,
 )
 
-h5_files = list(data_folder.glob("ephemerides_3200_Phaenthon_*.h5"))
-save_file = data_folder / "ephemerides_3200_Phaenthon_all.h5"
-
-
+h5_files = list(data_folder.glob("ephemerides_3200_Phaethon_*.h5"))
 
 pdata = np.load(particle_file)
 shell_part = pdata["shell_part"]
@@ -65,7 +63,7 @@ data_sets["index"] = data_sets["index"][sort_ind]
 for key in state_keys:
     data_sets[key] = data_sets[key][sort_ind]
 
-with h5py.File(str(save_file), "w") as hf:
+with h5py.File(str(ephem_file), "w") as hf:
     for key in data_sets:
         hf.create_dataset(key, data=data_sets[key])
     hf.create_dataset("t", data=t)

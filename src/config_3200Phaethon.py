@@ -5,9 +5,9 @@ data_folder = pathlib.Path("data").resolve()
 if not data_folder.is_dir():
     data_folder.mkdir()
 
-init_sim_file = data_folder / "cache_3200Phaenton_init.bin"
-particle_file = data_folder / "particles_3200_Phaenthon.npz"
-
+init_sim_file = data_folder / "cache_3200Phaethon_init.bin"
+particle_file = data_folder / "particles_3200_Phaethon.npz"
+ephem_file = data_folder / f"ephemerides_3200_Phaethon_all.h5"
 
 
 
@@ -23,7 +23,7 @@ outgass_delta = 1. * day
 
 outgass_time = np.arange(0,outgass_tf ,outgass_delta)
 sim_wo_outgass = np.arange(outgass_tf + day, sim_tf ,sim_delta)
-
+Nog = len(outgass_time)
 
 sim_time = np.concatenate([outgass_time,sim_wo_outgass])
 Nout = len(sim_time)

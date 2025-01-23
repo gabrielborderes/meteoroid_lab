@@ -41,17 +41,18 @@ from config_3200Phaethon import (
     T_comet,
     RotVel,
     particle_file,
+    ephem_file,
 )
 
 LONG_ARCH = True
 
 
 if size <= 1:
-    filename = data_folder / "cache_3200_Phaenthon_all.bin"
-    save_file = data_folder / "ephemerides_3200_Phaenthon_all.h5"
+    filename = data_folder / "cache_3200_Phaethon_all.bin"
+    save_file = ephem_file
 else:
-    filename = data_folder / f"cache_3200_Phaenthon_{rank}.bin"
-    save_file = data_folder / f"ephemerides_3200_Phaenthon_{rank}.h5"
+    filename = data_folder / f"cache_3200_Phaethon_{rank}.bin"
+    save_file = data_folder / f"ephemerides_3200_Phaethon_{rank}.h5"
 
 
 pdata = np.load(particle_file)
