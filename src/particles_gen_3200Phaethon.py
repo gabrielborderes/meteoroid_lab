@@ -7,7 +7,7 @@ import scipy.constants as constants
 
 from dasst.ejection_models.comets import sublimation
 
-from sim_configuration_outgassing import (
+from config_3200Phaethon import (
     data_folder,
     init_sim_file,
     solar_system_objects,
@@ -39,7 +39,7 @@ if not init_sim_file.is_file():
     # Get data from NASA Horizons
     try:
         sim.units = ("km", "s", "kg")
-        date = "2023-06-13 00:00"
+        date = "2000-01-01 00:00"
         for i in range(len(solar_system_objects)):
             sim.add(solar_system_objects[i], date=date, hash=solar_system_objects[i])
     except socket.error:
@@ -53,6 +53,17 @@ sim = rebound.Simulation(str(init_sim_file))
 
 n_bd = len(solar_system_objects)
 ps = sim.particles
+
+t = -1850.00290573183*365.25*24.*3600.
+
+sim.integrate(t)
+pscomet = ps["1983 TB"]
+
+print(np.degrees(pscomet.inc))
+
+sys.exit()
+
+
 
 ejection_possible = np.full((len(times), ), False, dtype=bool)
 

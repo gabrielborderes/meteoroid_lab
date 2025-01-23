@@ -28,7 +28,7 @@ except ImportError:
             pass
 
 
-from sim_configuration_outgassing import (
+from config_3200Phaethon import (
     data_folder,
     solar_luminosity,
     solar_system_objects,

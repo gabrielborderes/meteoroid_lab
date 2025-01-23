@@ -7,5 +7,8 @@ scipy
 mpi4py
 h5py
 tqdm
+astropy
 
-astropy?
+mpi4py
+
+rebound reboundx matplotlib numpy scipy h5py tqdm
