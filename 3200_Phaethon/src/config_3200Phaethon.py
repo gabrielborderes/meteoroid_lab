@@ -6,7 +6,7 @@ if not data_folder.is_dir():
     data_folder.mkdir()
 
 init_sim_file = data_folder / "cache_3200Phaethon_init.bin"
-particle_file = data_folder / "particles_3200_Phaethon.npz"
+particle_file = data_folder / "particles_3200_Phaethon.h5"
 ephem_file = data_folder / f"ephemerides_3200_Phaethon_all.h5"
 
 
@@ -15,7 +15,8 @@ ephem_file = data_folder / f"ephemerides_3200_Phaethon_all.h5"
 day = 24.0 * 3600.0
 year = 365.25 * day
 
-sim_tf = 2100. * year
+#sim_tf = 2100. * year
+sim_tf = 21. * year
 outgass_tf = 1.35 * year
 
 sim_delta = 2. * year
@@ -41,7 +42,7 @@ surface_temperature_coeff = 300
 K_drag = 26.0 / 9.0
 
 # Particle parameters
-N_part = 1000
+N_part = 10
 min_size_log = -4
 max_size_log = -1
 
@@ -53,6 +54,22 @@ RotVel = 2.0 * np.pi / (T_comet * 3600.0)
 
 
 # THE COMET MUST BE THE LAST IN THE LIST
+# solar_system_objects = [
+#     "Sun",
+#     "Mercury",
+#     "Venus",
+#     "Earth",
+#     "Mars",
+#     "Jupiter",
+#     "Saturn",
+#     "Uranus",
+#     "Neptune",
+#     "1983 TB",
+# ]
+
+
+
+
 solar_system_objects = [
     "Sun",
     "Mercury",

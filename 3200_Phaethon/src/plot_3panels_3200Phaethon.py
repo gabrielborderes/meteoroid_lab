@@ -90,10 +90,13 @@ if not plot_folder.is_dir():
 #comm.barrier()
 
 
-pdata = np.load(particle_file)
-shell_part = pdata["shell_part"]
-N_activity = pdata["N_activity"]
-particle_velocities = pdata["particle_velocities"]
+
+with h5py.File(particle_file, 'r') as f:
+    shell_part = f["shell_part"][:]
+    N_activity = f["N_activity"][:]
+
+
+
 
 N_part = shell_part.shape[0]
 nb = len(solar_system_objects)

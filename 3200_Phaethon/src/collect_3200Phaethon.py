@@ -11,9 +11,12 @@ from config_3200Phaethon import (
 
 h5_files = list(data_folder.glob("ephemerides_3200_Phaethon_*.h5"))
 
-pdata = np.load(particle_file)
-shell_part = pdata["shell_part"]
+
+with h5py.File(particle_file, 'r') as f:
+    shell_part = f["shell_part"][:]
+
 N_part = shell_part.shape[0]
+
 nb = len(solar_system_objects)
 
 data_sets = {}

@@ -2,6 +2,7 @@ import numpy as np
 import rebound
 import socket
 import sys
+import h5py
 from tqdm import tqdm
 import scipy.constants as constants
 
@@ -57,15 +58,6 @@ sim = rebound.Simulation(str(init_sim_file))
 
 n_bd = len(solar_system_objects)
 ps = sim.particles
-
-
-# pscomet = ps["1983 TB"]
-#
-# print(np.degrees(pscomet.f))
-# print(np.degrees(pscomet.inc))
-# sys.exit()
-
-
 
 ejection_possible = np.full((len(outgass_time), ), False, dtype=bool)
 
@@ -174,15 +166,20 @@ for step_i, num in tqdm(enumerate(N_activity), total=len(outgass_time)):
 print(f"{N_part} particles generated")
 print(f"{np.sum(np.isnan(particle_velocities))} particles failed ejecting")
 
-np.savez(
-    particle_file,
-    times=outgass_time,
-    shell_part=shell_part,
-    radius=shell_part[:, 0],
-    N_activity=N_activity,
-    particle_velocities=particle_velocities,
-    particle_distances=particle_distances,
-    masslosses=masslosses,
-    helio_distances=helio_distances,
-    ejection_possible=ejection_possible,
-)
+
+
+with h5py.File(str(particle_file), "w") as hf:
+    hf.create_dataset("times", data=outgass_time)
+    hf.create_dataset("shell_part", data=shell_part)
+    hf.create_dataset("radius", data=shell_part[:, 0])
+    hf.create_dataset("N_activity", data=N_activity)
+    hf.create_dataset("particle_velocities", data=particle_velocities)
+    hf.create_dataset("particle_distances", data=particle_distances)
+    hf.create_dataset("masslosses", data=masslosses)
+    hf.create_dataset("helio_distances", data=helio_distances)
+    hf.create_dataset("ejection_possible", data=ejection_possible)
+
+
+
+
+
