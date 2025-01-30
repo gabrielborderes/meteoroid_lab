@@ -8,7 +8,42 @@ import numpy as np
 
 from tqdm import tqdm
 
-# from astroquery.jplhorizons import Horizons
+def record_coll(sim_pointer, collision):
+    from os import path
+
+    sim = sim_pointer.contents
+
+    ps = sim.particles
+
+    if (code_sim[ps[collision.p1].hash.value] in solar_system_objects ):
+        planet = collision.p1
+        particle = collision.p2
+    else:
+        planet = collision.p2
+        particle = collision.p1
+    print(sim.t,'close enconteur com', code_sim[ps[planet].hash.value],code_sim[ps[particle].hash.value])
+
+    osPart = ps[particle].orbit(primary=ps[planet])
+
+    aC,eC,iC = osPart.a , osPart.e, osPart.inc
+
+    rp =  aC*(1-eC)
+
+    deltaP = ps[particle] - sim.particles[planet]
+    deltaR = np.sqrt(deltaP.x**2 + deltaP.y**2 + deltaP.z**2)
+
+    with open('data/registroEncontro.txt','a') as f:
+        f.write(f'{sim.t};{deltaR};{rp};{code_sim[ps[planet].hash.value]};{code_sim[ps[particle].hash.value]}\n')
+
+    if (code_sim[sim.particles[collision.p1].hash.value] in solar_system_objects):
+        return 2
+    else:
+        return 1
+
+
+
+
+
 
 try:
     from mpi4py import MPI
@@ -59,6 +94,13 @@ with h5py.File(particle_file, 'r') as f:
     shell_part = f["shell_part"][:]
     N_activity = f["N_activity"][:]
     particle_velocities = f["particle_velocities"][:]
+    key_sim = f["key_sim"][:]
+
+code_sim = dict()
+
+for i, key in enumerate(key_sim):
+    code_sim[str(key)] = solar_system_objects[i]
+
 
 
 N_part = shell_part.shape[0]
@@ -74,15 +116,11 @@ sim.move_to_com()
 sim.integrator = "ias15"
 # Let's save it for next time
 # Note: sim.save_to_file() only saves the particle data, not the integrator settings, etc.
-# sim.collision = "direct"
-# sim.collision = "none"
+sim.collision = "direct"
+sim.collision_resolve = record_coll
 
 # Set the integration time
 ps = sim.particles
-
-
-pscomet = ps["1983 TB"]
-
 
 
 rebx = reboundx.Extras(sim)

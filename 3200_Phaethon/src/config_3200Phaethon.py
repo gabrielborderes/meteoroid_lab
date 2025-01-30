@@ -42,7 +42,9 @@ surface_temperature_coeff = 300
 K_drag = 26.0 / 9.0
 
 # Particle parameters
+#N_part = 100000
 N_part = 10
+
 min_size_log = -4
 max_size_log = -1
 
@@ -62,7 +64,5 @@ solar_system_objects = [
     "Mars",
     "Jupiter",
     "Saturn",
-    "Uranus",
-    "Neptune",
     "1983 TB",
 ]

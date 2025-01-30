@@ -31,10 +31,7 @@ from config_3200Phaethon import (
 np.random.seed(426347637)
 
 
-#  SETING PARTICLE SPHERICAL SHELL
-#####################
-# TEST PARTILCES
-
+key_sim = np.zeros(len(solar_system_objects))
 
 if not init_sim_file.is_file():
     sim = rebound.Simulation()
@@ -44,6 +41,7 @@ if not init_sim_file.is_file():
         date = "2000-01-01 00:00"
         for i in range(len(solar_system_objects)):
             sim.add(solar_system_objects[i], date=date, hash=solar_system_objects[i])
+            key_sim[i] = sim.particles[solar_system_objects[i]].hash.value
     except socket.error:
         print("A socket error occured. Maybe Horizons is down?")
         sys.exit(0)  # we ignore the error and exit
@@ -55,6 +53,8 @@ if not init_sim_file.is_file():
     sim.save_to_file(str(init_sim_file))
 
 sim = rebound.Simulation(str(init_sim_file))
+
+sim.particles['Earth'].r = 1.88e-2 * constants.au/1000.
 
 n_bd = len(solar_system_objects)
 ps = sim.particles
@@ -178,7 +178,7 @@ with h5py.File(str(particle_file), "w") as hf:
     hf.create_dataset("masslosses", data=masslosses)
     hf.create_dataset("helio_distances", data=helio_distances)
     hf.create_dataset("ejection_possible", data=ejection_possible)
-
+    hf.create_dataset("key_sim", data=key_sim)
 
 
 

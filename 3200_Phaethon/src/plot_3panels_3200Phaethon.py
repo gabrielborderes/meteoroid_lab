@@ -261,39 +261,26 @@ for ti in tqdm(range(iter_inds)):
 
 
     Nog = 700
+    ax1.plot(x_bodies[4][0:Nog] / au, y_bodies[4][0:Nog] / au)
+    ax2.plot(x_bodies[4][0:Nog] / au, y_bodies[4][0:Nog] / au)
+    ax3.plot(x_bodies[4][0:Nog] / au, y_bodies[4][0:Nog] / au)
+
+
+    Nog = 4400
     ax1.plot(x_bodies[5][0:Nog] / au, y_bodies[5][0:Nog] / au)
     ax2.plot(x_bodies[5][0:Nog] / au, y_bodies[5][0:Nog] / au)
     ax3.plot(x_bodies[5][0:Nog] / au, y_bodies[5][0:Nog] / au)
 
 
-    Nog = 4400
+    Nog = 11000
     ax1.plot(x_bodies[6][0:Nog] / au, y_bodies[6][0:Nog] / au)
     ax2.plot(x_bodies[6][0:Nog] / au, y_bodies[6][0:Nog] / au)
     ax3.plot(x_bodies[6][0:Nog] / au, y_bodies[6][0:Nog] / au)
 
-
-    Nog = 11000
+    Nog = 520
     ax1.plot(x_bodies[7][0:Nog] / au, y_bodies[7][0:Nog] / au)
     ax2.plot(x_bodies[7][0:Nog] / au, y_bodies[7][0:Nog] / au)
     ax3.plot(x_bodies[7][0:Nog] / au, y_bodies[7][0:Nog] / au)
-
-    Nog = 30600
-    ax1.plot(x_bodies[8][0:Nog] / au, y_bodies[8][0:Nog] / au)
-    ax2.plot(x_bodies[8][0:Nog] / au, y_bodies[8][0:Nog] / au)
-    ax3.plot(x_bodies[8][0:Nog] / au, y_bodies[8][0:Nog] / au)
-
-    Nog = 59900
-    ax1.plot(x_bodies[9][0:Nog] / au, y_bodies[9][0:Nog] / au)
-    ax2.plot(x_bodies[9][0:Nog] / au, y_bodies[9][0:Nog] / au)
-    ax3.plot(x_bodies[9][0:Nog] / au, y_bodies[9][0:Nog] / au)
-
-
-
-
-    Nog = 520
-    ax1.plot(x_bodies[10][0:Nog] / au, y_bodies[10][0:Nog] / au)
-    ax2.plot(x_bodies[10][0:Nog] / au, y_bodies[10][0:Nog] / au)
-    ax3.plot(x_bodies[10][0:Nog] / au, y_bodies[10][0:Nog] / au)
 
 
     for k in range(0, nb):
