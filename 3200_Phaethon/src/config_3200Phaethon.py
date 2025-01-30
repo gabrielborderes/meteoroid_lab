@@ -53,29 +53,12 @@ RotVel = 2.0 * np.pi / (T_comet * 3600.0)
 
 
 
-# THE COMET MUST BE THE LAST IN THE LIST
-# solar_system_objects = [
-#     "Sun",
-#     "Mercury",
-#     "Venus",
-#     "Earth",
-#     "Mars",
-#     "Jupiter",
-#     "Saturn",
-#     "Uranus",
-#     "Neptune",
-#     "1983 TB",
-# ]
-
-
-
-
+#THE COMET MUST BE THE LAST IN THE LIST
 solar_system_objects = [
     "Sun",
     "Mercury",
     "Venus",
-    "399",
-    "301",
+    "Earth",
     "Mars",
     "Jupiter",
     "Saturn",
