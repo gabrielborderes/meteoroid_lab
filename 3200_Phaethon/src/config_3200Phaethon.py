@@ -15,8 +15,7 @@ ephem_file = data_folder / f"ephemerides_3200_Phaethon_all.h5"
 day = 24.0 * 3600.0
 year = 365.25 * day
 
-#sim_tf = 2100. * year
-sim_tf = 21. * year
+sim_tf = 2100. * year
 outgass_tf = 1.35 * year
 
 sim_delta = 2. * year
@@ -42,8 +41,7 @@ surface_temperature_coeff = 300
 K_drag = 26.0 / 9.0
 
 # Particle parameters
-#N_part = 100000
-N_part = 10
+N_part = 100000
 
 min_size_log = -4
 max_size_log = -1
