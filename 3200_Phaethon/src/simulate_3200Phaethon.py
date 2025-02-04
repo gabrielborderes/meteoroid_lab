@@ -21,7 +21,7 @@ def record_coll(sim_pointer, collision):
     else:
         planet = collision.p2
         particle = collision.p1
-    print(sim.t,'close enconteur com', code_sim[ps[planet].hash.value],code_sim[ps[particle].hash.value])
+    print(sim.t,'close enconteur ', code_sim[ps[planet].hash.value],code_sim[ps[particle].hash.value])
 
     osPart = ps[particle].orbit(primary=ps[planet])
 
@@ -32,7 +32,7 @@ def record_coll(sim_pointer, collision):
     deltaP = ps[particle] - sim.particles[planet]
     deltaR = np.sqrt(deltaP.x**2 + deltaP.y**2 + deltaP.z**2)
 
-    with open('data/registroEncontro.txt','a') as f:
+    with open(collisionFile,'a') as f:
         f.write(f'{sim.t};{deltaR};{rp};{code_sim[ps[planet].hash.value]};{code_sim[ps[particle].hash.value]}\n')
 
     if (code_sim[sim.particles[collision.p1].hash.value] in solar_system_objects):
@@ -85,9 +85,15 @@ LONG_ARCH = True
 if size <= 1:
     filename = data_folder / "cache_3200_Phaethon_all.bin"
     save_file = ephem_file
+    collisionFile = data_folder / 'closeRegister.txt'
+
 else:
     filename = data_folder / f"cache_3200_Phaethon_{rank}.bin"
     save_file = data_folder / f"ephemerides_3200_Phaethon_{rank}.h5"
+    collisionFile = data_folder / f'closeRegister_{rank}.txt'
+
+with open(collisionFile,'w') as f:
+    f.write(f'time;deltaR;rp;p1;p2\n')
 
 
 with h5py.File(particle_file, 'r') as f:

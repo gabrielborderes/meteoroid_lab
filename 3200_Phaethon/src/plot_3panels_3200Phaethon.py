@@ -307,7 +307,7 @@ for ti in tqdm(range(iter_inds)):
     if cbar is None:
         cbar = fig.colorbar(im, ax=ax3)
         cbar.set_label("$r_{part}=10^{x}$ m", fontsize=sizefont)
-        im.set_clim(vmin=-6, vmax=-2)
+        im.set_clim(vmin=min_size_log, vmax=max_size_log)
     ax2.set_xlim([-1.5 * zoom, 1.5 * zoom])
     ax2.set_ylim([-1.5 * zoom, 1.5 * zoom])
     ax3.set_xlim([-3.5 * zoom, 3.5 * zoom])
