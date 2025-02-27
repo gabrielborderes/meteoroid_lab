@@ -54,7 +54,7 @@ if not init_sim_file.is_file():
 
 sim = rebound.Simulation(str(init_sim_file))
 
-sim.particles['Earth'].r = 1.88e-2 * constants.au/1000.
+sim.particles['Earth'].r = 1.88e-2 * constants.au
 
 n_bd = len(solar_system_objects)
 ps = sim.particles
