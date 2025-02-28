@@ -14,6 +14,10 @@ import re
 import glob
 from astropy import units
 
+def extract_number(arquivo):
+    match = re.search(r'_(\d+)\.h5$', arquivo)
+    return int(match.group(1)) if match else float('inf')
+
 year = (units.year).to(units.second)
 
 
@@ -33,21 +37,9 @@ minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 
 sim_time = config["sim_param"].getfloat("sim_time")
 
-#active_cl = config["clones"].getboolean("active")
-#n_clones = config["clones"].getint("n_clones")
-
-
-
-def extract_number(arquivo):
-    match = re.search(r'_(\d+)\.h5$', arquivo)
-    return int(match.group(1)) if match else float('inf')
-
 
 files_list_not_ord = glob.glob(f"{input_files}_*.h5")
 file_list = sorted(files_list_not_ord, key=extract_number)
-
-all_H_K = []
-
 
 
 ni_met = len(major_bodies) + len(minor_bodies)
@@ -154,21 +146,18 @@ plt.savefig(figure_name)
 
 ax.clear()
 
-n_G1 = 0
-n_G1A = 0
+
 for bd in range(ni_met,len(index)):
     fig, ax = plt.subplots(figsize=(10, 6))
 
     fig.suptitle(f"{index[bd]} - {met_group [bd-ni_met]}", fontsize=16)
 
     if met_group [bd-ni_met] == "G1":
-        color = cmap_G1(norm_G1(a_values[n_G1]))
-        n_G1 = n_G1 + 1
+        ax.plot(time/year, H_K[bd-ni_met], color="blue")
     else:
-        color = cmap_G1A(norm_G1A(b_values[n_G1A]))
-        n_G1A = n_G1A + 1
+        ax.plot(time/year, H_K[bd-ni_met], color="red")
 
-    ax.plot(time/year, H_K[bd-ni_met], color=color)
+
 
     ax.set_ylim(0, 1)
     ax.set_xlim(-1.*sim_time,0)
