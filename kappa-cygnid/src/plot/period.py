@@ -41,32 +41,18 @@ if not data_folder.is_dir():
 
 
 
-input_files = "out/all_meteors/ephemerides"
+input_files = config["system"]["save_file"]
 
 major_bodies = config["sim_param"]["major_bodies"].split(", ")
 minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
-
-#active_cl = config["clones"].getboolean("active")
-#n_clones = config["clones"].getint("n_clones")
-
-
-
-
 
 
 files_list_not_ord = glob.glob(f"{input_files}_*.h5")
 file_list = sorted(files_list_not_ord, key=extract_number)
 
-
-
-
-
 ni_met = len(major_bodies) + len(minor_bodies)
 time = None
 met_group = None
-
-
-
 
 first = True
 n_file = 0

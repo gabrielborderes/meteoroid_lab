@@ -1,3 +1,4 @@
+import pathlib
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -15,8 +16,18 @@ import re
 import glob
 from astropy import units
 
+
+
+def extract_number(arquivo):
+    match = re.search(r'_(\d+)\.h5$', arquivo)
+    return int(match.group(1)) if match else float('inf')
+
 year = (units.year).to(units.second)
 
+
+f_plot = pathlib.Path("plot").resolve()
+f_orbele = f_plot / "orbital_element"
+f_orbele.mkdir(parents=True, exist_ok=True)
 
 config = configparser.ConfigParser()
 config.read("param.config")
@@ -29,7 +40,7 @@ if not data_folder.is_dir():
 
 
 
-input_files = "out/all_meteors/ephemerides"
+input_files = config["system"]["save_file"]
 
 major_bodies = config["sim_param"]["major_bodies"].split(", ")
 minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
@@ -39,9 +50,6 @@ minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 
 
 
-def extract_number(arquivo):
-    match = re.search(r'_(\d+)\.h5$', arquivo)
-    return int(match.group(1)) if match else float('inf')
 
 
 files_list_not_ord = glob.glob(f"{input_files}_*.h5")
