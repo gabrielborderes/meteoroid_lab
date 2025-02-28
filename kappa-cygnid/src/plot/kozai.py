@@ -1,3 +1,4 @@
+import pathlib
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -16,6 +17,11 @@ from astropy import units
 year = (units.year).to(units.second)
 
 
+f_plot = pathlib.Path("plot").resolve()
+f_kozai = f_plot / "kozai"
+f_kozai.mkdir(parents=True, exist_ok=True)
+
+
 config = configparser.ConfigParser()
 config.read("param.config")
 
@@ -24,6 +30,8 @@ input_files = config["system"]["save_file"]
 
 major_bodies = config["sim_param"]["major_bodies"].split(", ")
 minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
+
+sim_time = config["sim_param"].getfloat("sim_time")
 
 #active_cl = config["clones"].getboolean("active")
 #n_clones = config["clones"].getint("n_clones")
@@ -123,7 +131,7 @@ cbar_G1A.set_ticklabels(tic_names_G1A)
 
 
 ax.set_ylim(0, 1)
-ax.set_xlim(-4e4,0)
+ax.set_xlim(-1.*sim_time*year,0)
 ax.set_xlabel("Time (years)")
 ax.set_ylabel(r"$H_{Kozai}$")
 
@@ -131,7 +139,8 @@ ax.set_ylabel(r"$H_{Kozai}$")
 ax.grid(True)
 
 plt.tight_layout()
-plt.savefig("plot/kozai/KOZAI.png")
+figure_name = f_kozai / "KOZAI.png"
+plt.savefig(figure_name)
 
 ax.clear()
 
@@ -152,31 +161,13 @@ for bd in range(ni_met,len(index)):
     ax.plot(time/year, all_H_K[bd-ni_met], color=color)
 
     ax.set_ylim(0, 1)
-    ax.set_xlim(-4e4,0)
+    ax.set_xlim(-1.*sim_time*year,0)
     ax.set_xlabel("Time (years)")
     ax.set_ylabel(r"$H_{Kozai}$")
     ax.grid(True)
 
     plt.tight_layout()
-    plt.savefig(f"plot/kozai/{index[bd]}.png")
+    figure_name = f_kozai / f"{index[bd]}.png"
+    plt.savefig(figure_name)
     ax.clear()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
