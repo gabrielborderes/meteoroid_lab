@@ -1,3 +1,5 @@
+import pathlib
+
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -7,8 +9,6 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import configparser
-
-import pathlib
 
 from astropy.constants import GM_sun, au
 import re
@@ -21,13 +21,9 @@ year = (units.year).to(units.second)
 config = configparser.ConfigParser()
 config.read("param.config")
 
-
-
-data_folder = pathlib.Path("plot/orbital_elem/").resolve()
-if not data_folder.is_dir():
-    data_folder.mkdir()
-
-
+f_plot = pathlib.Path("plot").resolve()
+f_orbele = f_plot / "orbital_elements/e"
+f_orbele.mkdir(parents=True, exist_ok=True)
 
 input_files = "out/all_meteors/ephemerides"
 
@@ -67,7 +63,10 @@ for file_name in tqdm(file_list):
             time = hf["time"][:]
             index = hf["index"][:]
             met_group = hf["met_group"][:]
-            # all_met_code.append(hf["met_code"][:])
+            index  = [indx.decode() for indx in index]
+            met_group = [met.decode() for met in met_group]
+            n_G1 = met_group.count("G1")
+            n_G1A = met_group.count("G1A")
             first = False
             etmp = hf["e"][:]
             e = np.zeros((etmp.shape[0],etmp.shape[1]*len(file_list)))
@@ -87,8 +86,8 @@ for file_name in tqdm(file_list):
 
 
 
-a_values = np.arange(42)
-b_values = np.arange(6)
+a_values = np.arange(n_G1)
+b_values = np.arange(n_G1A)
 
 norm_G1 = mcolors.Normalize(vmin=a_values.min(), vmax=a_values.max())
 norm_G1A = mcolors.Normalize(vmin=b_values.min(), vmax=b_values.max())
@@ -106,8 +105,6 @@ n_G1A = 0
 index
 
 
-index  = [indx.decode() for indx in index]
-met_group = [met.decode() for met in met_group]
 
 
 for bd in range(ni_met,len(index)):
@@ -150,7 +147,7 @@ ax.set_ylabel("time (year)")
 ax.grid(True)
 
 plt.tight_layout()
-figure_name = data_folder / "all_e.png"
+figure_name = f_orbele / "all_e.png"
 plt.savefig(figure_name)
 
 ax.clear()
@@ -180,7 +177,7 @@ for bd in range(ni_met,len(index)):
     #ax.grid(True)
 
     plt.tight_layout()
-    figure_name = data_folder / f"e_{index[bd]}.png"
+    figure_name = f_orbele / f"e_{index[bd]}.png"
     plt.savefig(figure_name)
     ax.clear()
 

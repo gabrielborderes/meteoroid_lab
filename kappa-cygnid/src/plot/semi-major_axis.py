@@ -26,19 +26,11 @@ year = (units.year).to(units.second)
 
 
 f_plot = pathlib.Path("plot").resolve()
-f_orbele = f_plot / "orbital_element"
+f_orbele = f_plot / "orbital_elements/a"
 f_orbele.mkdir(parents=True, exist_ok=True)
 
 config = configparser.ConfigParser()
 config.read("param.config")
-
-
-
-data_folder = pathlib.Path("plot/orbital_elem/").resolve()
-if not data_folder.is_dir():
-    data_folder.mkdir()
-
-
 
 input_files = config["system"]["save_file"]
 
@@ -75,7 +67,10 @@ for file_name in tqdm(file_list):
             time = hf["time"][:]
             index = hf["index"][:]
             met_group = hf["met_group"][:]
-            # all_met_code.append(hf["met_code"][:])
+            index  = [indx.decode() for indx in index]
+            met_group = [met.decode() for met in met_group]
+            n_G1 = met_group.count("G1")
+            n_G1A = met_group.count("G1A")
             first = False
             atmp = hf["a"][:]
             ecc = hf["e"][:]
@@ -98,13 +93,8 @@ for file_name in tqdm(file_list):
     n_file = n_file + 1
 
 
-
-
-
-
-
-a_values = np.arange(42)
-b_values = np.arange(6)
+a_values = np.arange(n_G1)
+b_values = np.arange(n_G1A)
 
 norm_G1 = mcolors.Normalize(vmin=a_values.min(), vmax=a_values.max())
 norm_G1A = mcolors.Normalize(vmin=b_values.min(), vmax=b_values.max())
@@ -119,11 +109,7 @@ fig, ax = plt.subplots(figsize=(10, 6))
 
 n_G1 = 0
 n_G1A = 0
-index
 
-
-index  = [indx.decode() for indx in index]
-met_group = [met.decode() for met in met_group]
 
 
 for bd in range(ni_met,len(index)):
@@ -166,7 +152,7 @@ ax.set_ylabel("time (year)")
 ax.grid(True)
 
 plt.tight_layout()
-figure_name = data_folder / "all_a.png"
+figure_name = f_orbele / "all_a.png"
 plt.savefig(figure_name)
 
 ax.clear()
@@ -194,7 +180,7 @@ for bd in range(ni_met,len(index)):
     #ax.grid(True)
 
     plt.tight_layout()
-    figure_name = data_folder / f"a_{index[bd]}.png"
+    figure_name = f_orbele / f"a_{index[bd]}.png"
     plt.savefig(figure_name)
     ax.clear()
 

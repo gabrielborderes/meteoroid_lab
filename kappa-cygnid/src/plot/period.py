@@ -8,10 +8,6 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import configparser
 
-
-
-import pathlib
-
 from astropy.constants import GM_sun, au
 import re
 import glob
@@ -32,12 +28,6 @@ f_per.mkdir(parents=True, exist_ok=True)
 
 config = configparser.ConfigParser()
 config.read("param.config")
-
-
-
-data_folder = pathlib.Path("plot/orbital_elem/").resolve()
-if not data_folder.is_dir():
-    data_folder.mkdir()
 
 
 

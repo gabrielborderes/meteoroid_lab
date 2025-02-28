@@ -110,7 +110,6 @@ fig, ax = plt.subplots(figsize=(10, 6))
 
 n_G1 = 0
 n_G1A = 0
-index
 
 lim_time = len(x[0]) // 10
 

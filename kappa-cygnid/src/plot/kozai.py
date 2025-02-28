@@ -96,11 +96,6 @@ fig, ax = plt.subplots(figsize=(16, 6))
 n_G1 = 0
 n_G1A = 0
 
-
-
-
-
-
 for bd in range(ni_met,len(index)):
     if met_group [bd-ni_met] == "G1":
         color = cmap_G1(norm_G1(a_values[n_G1]))
