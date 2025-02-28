@@ -1,6 +1,6 @@
+import pathlib
 from tqdm import tqdm
 import numpy as np
-import pandas as pd
 import h5py
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
@@ -13,8 +13,16 @@ import re
 import glob
 from astropy import units
 
+def extract_number(arquivo):
+    match = re.search(r'_(\d+)\.h5$', arquivo)
+    return int(match.group(1)) if match else float('inf')
+
+
 year = (units.year).to(units.second)
 
+f_plot = pathlib.Path("plot").resolve()
+f_orbit = f_plot / "orbit"
+f_orbit.mkdir(parents=True, exist_ok=True)
 
 config = configparser.ConfigParser()
 config.read("param.config")
@@ -30,9 +38,7 @@ minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 
 
 
-def extract_number(arquivo):
-    match = re.search(r'_(\d+)\.h5$', arquivo)
-    return int(match.group(1)) if match else float('inf')
+
 
 
 files_list_not_ord = glob.glob(f"{input_files}_*.h5")
@@ -47,76 +53,49 @@ state_keys = [
     "y",
 ]
 
-max_file = int(10)
+
 ni_met = len(major_bodies) + len(minor_bodies)
 time = None
 met_group = None
-# for file_name in tqdm(file_list[:max_file]):
-#     with h5py.File(file_name, "r") as hf:
-#         index = hf["index"][:]
-#         if time is None:
-#             time = hf["time"][()]
-#
-#         if met_group is None:
-#             met_group = hf["met_group"][:]
-#
-#         if "index" not in data_sets:
-#             data_sets["index"] = [index]
-#
-#         for key in state_keys:
-#             pdata = hf[key][()]
-#             if key not in data_sets:
-#                 data_sets[key] = [pdata]
-#             else:
-#                 data_sets[key].append(pdata)
-#
-#
-#
-# for key in state_keys:
-#     data_sets[key] = np.concatenate(data_sets[key], axis=1)
-#     # print(data_sets[key].shape)
-#
-#
-# data_sets["index"] = np.concatenate(data_sets["index"], axis=0)
-
-
-
 
 first = True
 n_file = 0
-for file_name in tqdm(file_list[:max_file]):
+for file_name in tqdm(file_list):
     with h5py.File(file_name, "r") as hf:
         if first:
             time = hf["time"][:]
             index = hf["index"][:]
             met_group = hf["met_group"][:]
-            # all_met_code.append(hf["met_code"][:])
+            index  = [indx.decode() for indx in index]
+            met_group = [met.decode() for met in met_group]
+            n_G1 = met_group.count("G1")
+            n_G1A = met_group.count("G1A")
             first = False
             xtmp = hf["x"][:]
             ytmp = hf["y"][:]
-            x = np.zeros((xtmp.shape[0],xtmp.shape[1]*max_file))
-            y = np.zeros((xtmp.shape[0],xtmp.shape[1]*max_file))
+            ecc = hf["e"][:]
+            x = np.zeros((xtmp.shape[0],xtmp.shape[1]*len(file_list)))
+            y = np.zeros((xtmp.shape[0],xtmp.shape[1]*len(file_list)))
         else:
             xtmp = hf["x"][:]
             ytmp = hf["y"][:]
+            ecc = hf["e"][:]
 
 
     for t_tmp in range(xtmp.shape[1]):
         for bd in range(0,len(index)):
-            x[bd][t_tmp + xtmp.shape[1]*n_file] = xtmp[bd][t_tmp]
-            y[bd][t_tmp + xtmp.shape[1]*n_file] = ytmp[bd][t_tmp]
+            if ecc[bd][t_tmp] < 1.:
+                x[bd][t_tmp + xtmp.shape[1]*n_file] = xtmp[bd][t_tmp]
+                y[bd][t_tmp + xtmp.shape[1]*n_file] = ytmp[bd][t_tmp]
+            else:
+                x[bd][t_tmp + xtmp.shape[1]*n_file] = None
+                y[bd][t_tmp + xtmp.shape[1]*n_file] = None
 
     n_file = n_file + 1
 
 
-
-# x = data_sets["x"]
-# y = data_sets["y"]
-
-
-
-a_values = np.arange(42)
-b_values = np.arange(6)
+a_values = np.arange(n_G1)
+b_values = np.arange(n_G1A)
 
 norm_G1 = mcolors.Normalize(vmin=a_values.min(), vmax=a_values.max())
 norm_G1A = mcolors.Normalize(vmin=b_values.min(), vmax=b_values.max())
@@ -133,9 +112,7 @@ n_G1 = 0
 n_G1A = 0
 index
 
-
-index  = [indx.decode() for indx in index]
-met_group = [met.decode() for met in met_group]
+lim_time = len(x[0]) // 10
 
 
 for bd in range(ni_met,len(index)):
@@ -148,15 +125,15 @@ for bd in range(ni_met,len(index)):
         tic_names_G1A.append(index[bd])
         n_G1A = n_G1A + 1
 
-    ax.plot(x[bd]/au.value, y[bd]/au.value, color=color)
+    ax.plot(x[bd][:lim_time]/au.value, y[bd][:lim_time]/au.value, color=color)
     ax.plot(
-        x[index.index("Jupiter")]/au.value,
-        y[index.index("Jupiter")]/au.value,
+        x[index.index("Jupiter")][:lim_time]/au.value,
+        y[index.index("Jupiter")][:lim_time]/au.value,
         color="black"
     )
     ax.plot(
-        x[index.index("Sun")]/au.value,
-        y[index.index("Sun")]/au.value,
+        x[index.index("Sun")][:lim_time]/au.value,
+        y[index.index("Sun")][:lim_time]/au.value,
         color="black"
     )
 
@@ -187,7 +164,10 @@ ax.set_ylabel("y (au)")
 ax.grid(True)
 
 plt.tight_layout()
-plt.savefig("plot/orbit/all_orbit.png")
+
+figure_name = f_orbit / "all_orbit.png"
+plt.savefig(figure_name)
+
 
 ax.clear()
 
@@ -228,7 +208,8 @@ for bd in range(ni_met,len(index)):
     ax.grid(True)
 
     plt.tight_layout()
-    plt.savefig(f"plot/orbit/orb_{index[bd]}.png")
+    figure_name = f_orbit / f"orb_{index[bd]}.png"
+    plt.savefig(figure_name)
     ax.clear()
 
 
