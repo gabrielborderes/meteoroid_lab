@@ -171,8 +171,6 @@ plt.savefig(figure_name)
 
 ax.clear()
 
-n_G1 = 0
-n_G1A = 0
 
 
 
@@ -184,13 +182,11 @@ for bd in range(ni_met,len(index)):
     fig.suptitle(f"{index[bd]} - {met_group [bd-ni_met]}", fontsize=16)
 
     if met_group [bd-ni_met] == "G1":
-        color = cmap_G1(norm_G1(a_values[n_G1]))
-        n_G1 = n_G1 + 1
+        ax.plot(x[bd]/au.value, y[bd]/au.value, color="blue")
     else:
-        color = cmap_G1A(norm_G1A(b_values[n_G1A]))
-        n_G1A = n_G1A + 1
+        ax.plot(x[bd]/au.value, y[bd]/au.value, color="red")
 
-    ax.plot(x[bd]/au.value, y[bd]/au.value, color=color)
+
     ax.plot(
         x[index.index("Jupiter")]/au.value,
         y[index.index("Jupiter")]/au.value,

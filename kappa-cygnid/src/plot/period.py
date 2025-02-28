@@ -1,3 +1,4 @@
+import pathlib
 from tqdm import tqdm
 import numpy as np
 import h5py
@@ -23,14 +24,11 @@ def extract_number(arquivo):
     match = re.search(r'_(\d+)\.h5$', arquivo)
     return int(match.group(1)) if match else float('inf')
 
-
-
-
-
-
-
 year = (units.year).to(units.second)
 
+f_plot = pathlib.Path("plot").resolve()
+f_per = f_plot / "period"
+f_per.mkdir(parents=True, exist_ok=True)
 
 config = configparser.ConfigParser()
 config.read("param.config")
@@ -78,7 +76,10 @@ for file_name in tqdm(file_list):
             time = hf["time"][:]
             index = hf["index"][:]
             met_group = hf["met_group"][:]
-            # all_met_code.append(hf["met_code"][:])
+            index  = [indx.decode() for indx in index]
+            met_group = [met.decode() for met in met_group]
+            n_G1 = met_group.count("G1")
+            n_G1A = met_group.count("G1A")
             first = False
             atmp = hf["a"][:]
             ecc = hf["e"][:]
@@ -99,13 +100,11 @@ for file_name in tqdm(file_list):
 
 
 
-# x = data_sets["x"]
-# y = data_sets["y"]
 
 
 
-a_values = np.arange(42)
-b_values = np.arange(6)
+a_values = np.arange(n_G1)
+b_values = np.arange(n_G1A)
 
 norm_G1 = mcolors.Normalize(vmin=a_values.min(), vmax=a_values.max())
 norm_G1A = mcolors.Normalize(vmin=b_values.min(), vmax=b_values.max())
@@ -123,8 +122,7 @@ n_G1A = 0
 index
 
 
-index  = [indx.decode() for indx in index]
-met_group = [met.decode() for met in met_group]
+
 
 
 for bd in range(ni_met,len(index)):
@@ -177,6 +175,7 @@ ax.grid(True)
 
 plt.tight_layout()
 figure_name = data_folder / "all_per.png"
+figure_name = f_per / f"all_per.png"
 plt.savefig(figure_name)
 
 ax.clear()
@@ -214,7 +213,8 @@ for bd in range(ni_met,len(index)):
     ax.set_yscale('log')
 
     plt.tight_layout()
-    figure_name = data_folder / f"per_{index[bd]}.png"
+    figure_name = f_per/ f"per_{index[bd]}.png"
+    plt.savefig(figure_name)
     plt.savefig(figure_name)
     ax.clear()
 
