@@ -1,6 +1,5 @@
 from tqdm import tqdm
 import numpy as np
-import pandas as pd
 import h5py
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
@@ -16,6 +15,19 @@ from astropy.constants import GM_sun, au
 import re
 import glob
 from astropy import units
+
+
+
+
+def extract_number(arquivo):
+    match = re.search(r'_(\d+)\.h5$', arquivo)
+    return int(match.group(1)) if match else float('inf')
+
+
+
+
+
+
 
 year = (units.year).to(units.second)
 
@@ -41,13 +53,10 @@ minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 
 
 
-def extract_number(arquivo):
-    match = re.search(r'_(\d+)\.h5$', arquivo)
-    return int(match.group(1)) if match else float('inf')
+
 
 
 files_list_not_ord = glob.glob(f"{input_files}_*.h5")
-
 file_list = sorted(files_list_not_ord, key=extract_number)
 
 
