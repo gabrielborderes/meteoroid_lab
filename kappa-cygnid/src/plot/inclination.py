@@ -19,7 +19,8 @@ year = (units.year).to(units.second)
 
 
 config = configparser.ConfigParser()
-config.read("param.config")
+#config.read("param.config")
+config.read("param_EN220821_011118.config")
 
 
 
@@ -34,8 +35,8 @@ input_files = config["system"]["save_file"]
 major_bodies = config["sim_param"]["major_bodies"].split(", ")
 minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 
-#active_cl = config["clones"].getboolean("active")
-#n_clones = config["clones"].getint("n_clones")
+active_cl = config["clones"].getboolean("active")
+n_clones = config["clones"].getint("n_clones")
 
 
 
@@ -89,102 +90,129 @@ for file_name in tqdm(file_list):
 
     n_file = n_file + 1
 
+if active_cl:
 
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-a_values = np.arange(n_G1)
-b_values = np.arange(n_G1A)
+    index_met = index[ni_met:]
+    for bd, item in enumerate(index_met):
+        item = item.strip()
 
-norm_G1 = mcolors.Normalize(vmin=a_values.min(), vmax=a_values.max())
-norm_G1A = mcolors.Normalize(vmin=b_values.min(), vmax=b_values.max())
+        if "_cl_" in item:
+            ax.plot(time/year, np.degrees(inc[bd+ni_met]), color=color_cl, alpha=0.2)
+        else:
+            if met_group[bd] == "G1":
+                color_cl = "blue"
+            else:
+                color_cl = "red"
+            fig.suptitle(f"{index_met[bd]} - {met_group[bd]}", fontsize=16)
+            ax.plot(time/year, np.degrees(inc[bd+ni_met]), color=color_cl)
 
-cmap_G1 = cm.Blues
-cmap_G1A = cm.Reds
-
-tic_names_G1 = []
-tic_names_G1A = []
-
-fig, ax = plt.subplots(figsize=(10, 6))
-
-n_G1 = 0
-n_G1A = 0
-index
-
-
-
-for bd in range(ni_met,len(index)):
-    if met_group [bd-ni_met] == "G1":
-        color = cmap_G1(norm_G1(a_values[n_G1]))
-        tic_names_G1.append(index[bd])
-        n_G1 = n_G1 + 1
-    else:
-        color = cmap_G1A(norm_G1A(b_values[n_G1A]))
-        tic_names_G1A.append(index[bd])
-        n_G1A = n_G1A + 1
-
-    ax.plot(time/year, np.degrees(inc[bd]), color=color)
-
-
-
-
-sm_G1 = cm.ScalarMappable(cmap=cmap_G1, norm=norm_G1)
-sm_G1A = cm.ScalarMappable(cmap=cmap_G1A, norm=norm_G1A)
-sm_G1.set_array([])
-sm_G1A.set_array([])
-
-
-cbar_G1 = plt.colorbar(sm_G1, ax=ax, orientation="vertical", pad=0.1)
-cbar_G1A = plt.colorbar(sm_G1A, ax=ax, orientation="vertical", pad=0.02)
-
-
-cbar_G1.set_ticks(a_values)
-cbar_G1.set_ticklabels(tic_names_G1)
-
-cbar_G1A.set_ticks(b_values[:len(tic_names_G1A)])
-cbar_G1A.set_ticklabels(tic_names_G1A)
-
-#plt.axis("equal")
-
-ax.set_xlabel("i (degrees)")
-ax.set_ylabel("time (year)")
-
-#ax.legend()
-ax.grid(True)
-
-plt.tight_layout()
-
-figure_name = f_orbele / "all_inc.png"
-plt.savefig(figure_name)
-
-ax.clear()
-
-n_G1 = 0
-n_G1A = 0
-
-
-
-
-
-for bd in range(ni_met,len(index)):
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    fig.suptitle(f"{index[bd]} - {met_group [bd-ni_met]}", fontsize=16)
-
-    if met_group [bd-ni_met] == "G1":
-        ax.plot(time/year, np.degrees(inc[bd]), color="blue")
-    else:
-        ax.plot(time/year, np.degrees(inc[bd]), color="red")
-
-
-
-    #plt.axis("equal")
-    ax.set_xlabel("i (degrees)")
+    ax.set_xlabel("e")
     ax.set_ylabel("time (year)")
-    #ax.grid(True)
 
     plt.tight_layout()
-    figure_name = f_orbele / f"inc_{index[bd]}.png"
+    figure_name = f_orbele / f"e.png"
     plt.savefig(figure_name)
     ax.clear()
+
+
+else:
+
+    a_values = np.arange(n_G1)
+    b_values = np.arange(n_G1A)
+
+    norm_G1 = mcolors.Normalize(vmin=a_values.min(), vmax=a_values.max())
+    norm_G1A = mcolors.Normalize(vmin=b_values.min(), vmax=b_values.max())
+
+    cmap_G1 = cm.Blues
+    cmap_G1A = cm.Reds
+
+    tic_names_G1 = []
+    tic_names_G1A = []
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    n_G1 = 0
+    n_G1A = 0
+    index
+
+
+
+    for bd in range(ni_met,len(index)):
+        if met_group [bd-ni_met] == "G1":
+            color = cmap_G1(norm_G1(a_values[n_G1]))
+            tic_names_G1.append(index[bd])
+            n_G1 = n_G1 + 1
+        else:
+            color = cmap_G1A(norm_G1A(b_values[n_G1A]))
+            tic_names_G1A.append(index[bd])
+            n_G1A = n_G1A + 1
+
+        ax.plot(time/year, np.degrees(inc[bd]), color=color)
+
+
+
+
+    sm_G1 = cm.ScalarMappable(cmap=cmap_G1, norm=norm_G1)
+    sm_G1A = cm.ScalarMappable(cmap=cmap_G1A, norm=norm_G1A)
+    sm_G1.set_array([])
+    sm_G1A.set_array([])
+
+
+    cbar_G1 = plt.colorbar(sm_G1, ax=ax, orientation="vertical", pad=0.1)
+    cbar_G1A = plt.colorbar(sm_G1A, ax=ax, orientation="vertical", pad=0.02)
+
+
+    cbar_G1.set_ticks(a_values)
+    cbar_G1.set_ticklabels(tic_names_G1)
+
+    cbar_G1A.set_ticks(b_values[:len(tic_names_G1A)])
+    cbar_G1A.set_ticklabels(tic_names_G1A)
+
+    #plt.axis("equal")
+
+    ax.set_xlabel("i (degrees)")
+    ax.set_ylabel("time (year)")
+
+    #ax.legend()
+    ax.grid(True)
+
+    plt.tight_layout()
+
+    figure_name = f_orbele / "all_inc.png"
+    plt.savefig(figure_name)
+
+    ax.clear()
+
+    n_G1 = 0
+    n_G1A = 0
+
+
+
+
+
+    for bd in range(ni_met,len(index)):
+        fig, ax = plt.subplots(figsize=(7, 6))
+
+        fig.suptitle(f"{index[bd]} - {met_group [bd-ni_met]}", fontsize=16)
+
+        if met_group [bd-ni_met] == "G1":
+            ax.plot(time/year, np.degrees(inc[bd]), color="blue")
+        else:
+            ax.plot(time/year, np.degrees(inc[bd]), color="red")
+
+
+
+        #plt.axis("equal")
+        ax.set_xlabel("i (degrees)")
+        ax.set_ylabel("time (year)")
+        #ax.grid(True)
+
+        plt.tight_layout()
+        figure_name = f_orbele / f"inc_{index[bd]}.png"
+        plt.savefig(figure_name)
+        ax.clear()
 
 
 
