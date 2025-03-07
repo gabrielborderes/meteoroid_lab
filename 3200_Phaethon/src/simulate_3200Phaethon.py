@@ -5,6 +5,11 @@ import scipy.constants as constants
 import h5py
 import numpy as np
 
+import sys
+
+import os
+import re
+import configparser
 
 from tqdm import tqdm
 
@@ -65,6 +70,7 @@ except ImportError:
 
 from config_3200Phaethon import (
     data_folder,
+    checkpoint,
     solar_luminosity,
     solar_system_objects,
     init_sim_file,
@@ -89,7 +95,7 @@ if size <= 1:
 
 else:
     filename = data_folder / f"cache_3200_Phaethon_{rank}.bin"
-    save_file = data_folder / f"ephemerides_3200_Phaethon_{rank}.h5"
+    save_file = f"ephemerides_3200_Phaethon_{rank}.h5"
     collisionFile = data_folder / f'closeRegister_{rank}.txt'
 
 with open(collisionFile,'w') as f:
@@ -112,10 +118,14 @@ for i, key in enumerate(key_sim):
 N_part = shell_part.shape[0]
 nb = len(solar_system_objects)
 
-sim = rebound.Simulation(str(init_sim_file))
 
+if os.path.exists(checkpoint):
+    print("not implemented yet")
+    sys.exit()
 
-
+else:
+    sim = rebound.Simulation(str(init_sim_file))
+    count_file = int(0)
 
 sim.move_to_com()
 # Configure simulation
@@ -141,16 +151,18 @@ ps["Sun"].params["radiation_source"] = 1
 iter_inds = np.arange(rank, N_part, size, dtype=np.int64)
 N_process_part = len(iter_inds)
 
-x = np.zeros((sim.N + N_process_part, Nout))
-y = np.zeros((sim.N + N_process_part, Nout))
-z = np.zeros((sim.N + N_process_part, Nout))
-vx = np.zeros((sim.N + N_process_part, Nout))
-vy = np.zeros((sim.N + N_process_part, Nout))
-vz = np.zeros((sim.N + N_process_part, Nout))
+flush = int(Nout/100)
+
+x = np.zeros((sim.N + N_process_part, flush))
+y = np.zeros((sim.N + N_process_part, flush))
+z = np.zeros((sim.N + N_process_part, flush))
+vx = np.zeros((sim.N + N_process_part, flush))
+vy = np.zeros((sim.N + N_process_part, flush))
+vz = np.zeros((sim.N + N_process_part, flush))
 id_part = 0
 
+count = int(0)
 pbar = tqdm(total=len(sim_time), position=rank)
-
 for ti, t in enumerate(sim_time):
     sim.integrate(t)
     pbar.update(1)
@@ -225,18 +237,32 @@ for ti, t in enumerate(sim_time):
         vy[nb + arr_ind][ti] = p.vy
         vz[nb + arr_ind][ti] = p.vz
 
+
+    count =  int(count+1)
+    if count == flush:
+        count = int(0)
+
+        sim.save_to_file(str(checkpoint))
+
+        sv_folder = data_folder / f"part_{count_file}"
+        sv_folder.mkdir(parents=True, exist_ok=True)
+
+        file_name = sv_folder / save_file
+        # Save data
+        with h5py.File(str(file_name), "w") as hf:
+            hf.create_dataset("index", data=iter_inds)
+            hf.create_dataset("t", data=sim_time)
+            hf.create_dataset("x", data=x)
+            hf.create_dataset("y", data=y)
+            hf.create_dataset("z", data=z)
+            hf.create_dataset("vx", data=vx)
+            hf.create_dataset("vy", data=vy)
+            hf.create_dataset("vz", data=vz)
+
+        count_file = int(count_file+1)
+
 pbar.close()
 # Save data
-with h5py.File(str(save_file), "w") as hf:
-    hf.create_dataset("index", data=iter_inds)
-    hf.create_dataset("t", data=sim_time)
-    hf.create_dataset("x", data=x)
-    hf.create_dataset("y", data=y)
-    hf.create_dataset("z", data=z)
-    hf.create_dataset("vx", data=vx)
-    hf.create_dataset("vy", data=vy)
-    hf.create_dataset("vz", data=vz)
 
-sim.save_to_file(str(filename))
 
 

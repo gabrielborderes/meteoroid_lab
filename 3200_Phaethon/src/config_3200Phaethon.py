@@ -7,8 +7,8 @@ if not data_folder.is_dir():
 
 init_sim_file = data_folder / "cache_3200Phaethon_init.bin"
 particle_file = data_folder / "particles_3200_Phaethon.h5"
-ephem_file = data_folder / f"ephemerides_3200_Phaethon_all.h5"
-
+ephem_file = "ephemerides_3200_Phaethon_all.h5"
+checkpoint = data_folder / "reboot.bin"
 
 
 # SIMULATION Parameters
