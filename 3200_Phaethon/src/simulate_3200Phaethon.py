@@ -219,23 +219,23 @@ for ti, t in enumerate(sim_time):
 
     for bind in range(nb):
         p = ps[f"{solar_system_objects[bind]}"]
-        x[bind][ti] = p.x
-        y[bind][ti] = p.y
-        z[bind][ti] = p.z
-        vx[bind][ti] = p.vx
-        vy[bind][ti] = p.vy
-        vz[bind][ti] = p.vz
+        x[bind][count] = p.x
+        y[bind][count] = p.y
+        z[bind][count] = p.z
+        vx[bind][count] = p.vx
+        vy[bind][count] = p.vy
+        vz[bind][count] = p.vz
 
     for arr_ind, pind in enumerate(iter_inds):
         if pind >= id_part:
             break
         p = ps[f"{pind}"]
-        x[nb + arr_ind][ti] = p.x
-        y[nb + arr_ind][ti] = p.y
-        z[nb + arr_ind][ti] = p.z
-        vx[nb + arr_ind][ti] = p.vx
-        vy[nb + arr_ind][ti] = p.vy
-        vz[nb + arr_ind][ti] = p.vz
+        x[nb + arr_ind][count] = p.x
+        y[nb + arr_ind][count] = p.y
+        z[nb + arr_ind][count] = p.z
+        vx[nb + arr_ind][count] = p.vx
+        vy[nb + arr_ind][count] = p.vy
+        vz[nb + arr_ind][count] = p.vz
 
 
     count =  int(count+1)
@@ -263,6 +263,24 @@ for ti, t in enumerate(sim_time):
 
 pbar.close()
 # Save data
+if count != 0:
+    sim.save_to_file(str(checkpoint))
+
+    sv_folder = data_folder / f"part_{count_file}"
+    sv_folder.mkdir(parents=True, exist_ok=True)
+
+    file_name = sv_folder / save_file
+    # Save data
+    with h5py.File(str(file_name), "w") as hf:
+        hf.create_dataset("index", data=iter_inds)
+        hf.create_dataset("t", data=sim_time)
+        hf.create_dataset("x", data=x)
+        hf.create_dataset("y", data=y)
+        hf.create_dataset("z", data=z)
+        hf.create_dataset("vx", data=vx)
+        hf.create_dataset("vy", data=vy)
+        hf.create_dataset("vz", data=vz)
+
 
 
 
