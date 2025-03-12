@@ -25,7 +25,7 @@ def record_coll(sim_pointer, collision):
     from os import path
 
     sim = sim_pointer.contents
-    with open(file_coll,'a') as f:
+    with open(out / file_coll,'a') as f:
         f.write(f'Collision at {sim.t} between {sim.particles[collision.p1].hash} and {sim.particles[collision.p2].hash}\n')
     return 0                             # Don't remove either particle
 
@@ -81,20 +81,18 @@ def func_dist(f, a, e, i, Omega, omega, EP):
     return dist
 
 
-
+# PRE-SETING
 config = configparser.ConfigParser()
-#config.read("param.config")
+config.read("config/config.ini")
 
-config.read("param_clone.config")
 
 # READ SIMULATION PARAMETERS
 file_in_meteor = config["system"]["file_in_meteor"]
+out_folder = config["system"]["out_folder"]
 file_coll = config["system"]["file_coll"]
 save_file = config["system"]["save_file"]
+save_time = config["system"]["save_time"]
 checkpoint = config["system"]["checkpoint"]
-
-
-
 
 sim_time = config["sim_param"].getfloat("sim_time")
 sim_step = config["sim_param"].getfloat("sim_step")
@@ -104,6 +102,8 @@ minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 
 sim_back = config["sim_param"].getboolean("backward")
 collision = config["sim_param"].getboolean("collision")
+
+fac_flush = config["sim_param"]..getint("fac_flush")
 
 active_cl = config["clones"].getboolean("active")
 n_clones = config["clones"].getint("n_clones")
@@ -119,9 +119,12 @@ n_G1 = data["GROUP"].count("G1")
 n_G1A = data["GROUP"].count("G1A")
 
 
+out = pathlib.Path(out_folder).resolve()
+out.mkdir(parents=True, exist_ok=True)
 
-if os.path.exists(checkpoint):
-    sim = rebound.Simulation(str(checkpoint))
+
+if os.path.exists(out / checkpoint):
+    sim = rebound.Simulation(str(out / checkpoint))
     for i in range(len(major_bodies)):
         index.append(major_bodies[i])
 
@@ -145,7 +148,7 @@ if os.path.exists(checkpoint):
     else:
         time_array = np.arange(0,sim_time,sim_step)
 
-    dir, name= os.path.split(save_file)
+    dir, name= os.path.split(out / save_file)
 
     padrao = re.compile(rf"^{re.escape(name)}_(\d+)\.h5$")
 
@@ -163,6 +166,12 @@ if os.path.exists(checkpoint):
     else:
         count_file = int(0)
 
+    sim.move_to_com()
+    sim.integrator = "ias15"
+
+    if collision:
+        sim.collision = "direct"
+        sim.collision_resolve = record_coll
 
 else:
     # Starting simulation
@@ -173,9 +182,9 @@ else:
     date_ini = f"JD{max(data['JD']):.10f}"
 
     #kappa_cygnid = tuple(map(float, config["sim_param"]["kappa_cygnid"].split(", ")))
-
-    # with open(file_coll,'w') as f:
-    #     f.write(f'Dictionary\n')
+    if collision:
+        with open(out / file_coll,'w') as f:
+            f.write(f'Dictionary\n')
 
     for i in range(len(major_bodies)):
         sim.add(
@@ -184,8 +193,9 @@ else:
             hash = major_bodies[i]
         )
         index.append(major_bodies[i])
-        with open(file_coll,'a') as f:
-            f.write(f'Body : {major_bodies[i]}, hash {sim.particles[major_bodies[i]].hash}\n')
+        if collision:
+            with open(out / file_coll,'a') as f:
+                f.write(f'Body : {major_bodies[i]}, hash {sim.particles[major_bodies[i]].hash}\n')
 
     for i in range(len(minor_bodies)):
         sim.add(
@@ -194,16 +204,19 @@ else:
             hash = minor_bodies[i]
         )
         index.append(minor_bodies[i])
-        with open(file_coll,'a') as f:
-            f.write(f'Body : {minor_bodies[i]}, hash {sim.particles[minor_bodies[i]].hash}\n')
+        if collision:
+            with open(out / file_coll,'a') as f:
+                f.write(f'Body : {minor_bodies[i]}, hash {sim.particles[minor_bodies[i]].hash}\n')
 
     # SORT THE METEOR SEQUENCE FROM THE LATEST (MOST RECENT) TO THE OLDEST
     sor_ind = sorted(range(len(data['JD'])), key=lambda i: data['JD'][i], reverse=True)
 
     sim.move_to_com()
     sim.integrator = "ias15"
-    # sim.collision = "direct"
-    # sim.collision_resolve = record_coll
+
+    if collision:
+        sim.collision = "direct"
+        sim.collision_resolve = record_coll
 
     # ADD METEORS IN THE SIMULATION
     for i in tqdm(sor_ind):
@@ -255,7 +268,7 @@ else:
             hash = hash_meteor
         )
         index.append(hash_meteor)
-        with open(file_coll,'a') as f:
+        with open(out / file_coll,'a') as f:
             f.write(f'Body : {data['CODE'][i]}, hash {sim.particles[hash_meteor].hash}\n')
         if active_cl:
             for j in range(n_clones):
@@ -299,7 +312,7 @@ else:
                         hash = hash_cl
                     )
                     index.append(hash_cl)
-                    with open(file_coll,'a') as f:
+                    with open(out / file_coll,'a') as f:
                         f.write(f'Body : {hash_cl}, hash {sim.particles[hash_cl].hash}\n')
                         f.write(f'a = {sma}, e = {ecc}, i = {incl}, O = {Ome}, o = {ome}, f = {nu}\n')
 
@@ -312,12 +325,22 @@ else:
 
 
 
+
+
+# PRE-SAVING
+with h5py.File(out / save_time, "w") as hf:
+    hf.create_dataset("index", data=index)
+    hf.create_dataset("time", data=time_array)
+    hf.create_dataset("met_code", data=data['CODE'])
+    hf.create_dataset("met_group", data=data["GROUP"])
+
+
+# SIMULATION
+
 ps = sim.particles
 
-
-
 nbd = len(index)
-flush = int(len(time_array)/100)
+flush = int(len(time_array)/fac_flush)
 
 x = np.zeros((nbd, flush))
 y = np.zeros((nbd, flush))
@@ -362,11 +385,9 @@ for ti, t in enumerate(time_array):
     if count == flush:
         count = int(0)
 
-        sim.save_to_file(str(checkpoint))
-        file_name = f"{save_file}_{count_file}.h5"
+        sim.save_to_file(str(out / checkpoint))
+        file_name = f"{out / save_file}_{count_file}.h5"
         with h5py.File(file_name, "w") as hf:
-            hf.create_dataset("index", data=index)
-            hf.create_dataset("time", data=time_array)
             hf.create_dataset("x", data=x)
             hf.create_dataset("y", data=y)
             hf.create_dataset("z", data=z)
@@ -380,8 +401,7 @@ for ti, t in enumerate(time_array):
             hf.create_dataset("omega", data=o)
             hf.create_dataset("f", data=f)
             hf.create_dataset("M", data=M)
-            hf.create_dataset("met_code", data=data['CODE'])
-            hf.create_dataset("met_group", data=data["GROUP"])
+
 
         count_file = int(count_file+1)
 
@@ -392,11 +412,9 @@ pbar.close()
 
 # Save data
 if count != 0:
-    sim.save_to_file(str(checkpoint))
-    file_name = f"{save_file}_{count_file}.h5"
+    sim.save_to_file(str(out / checkpoint))
+    file_name = f"{out / save_file}_{count_file}.h5"
     with h5py.File(file_name, "w") as hf:
-        hf.create_dataset("index", data=index)
-        hf.create_dataset("time", data=time_array)
         hf.create_dataset("x", data=x)
         hf.create_dataset("y", data=y)
         hf.create_dataset("z", data=z)
@@ -410,7 +428,6 @@ if count != 0:
         hf.create_dataset("omega", data=o)
         hf.create_dataset("f", data=f)
         hf.create_dataset("M", data=M)
-        hf.create_dataset("met_code", data=data['CODE'])
-        hf.create_dataset("met_group", data=data["GROUP"])
+
 
     count_file = int(count_file+1)
