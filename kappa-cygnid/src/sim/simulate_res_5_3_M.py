@@ -80,7 +80,7 @@ def func_dist(f, a, e, i, Omega, omega, EP):
 config = configparser.ConfigParser()
 #config.read("param.config")
 
-config.read("param_clone.config")
+config.read("param_ress.config")
 
 # READ SIMULATION PARAMETERS
 file_in_meteor = config["system"]["file_in_meteor"]
@@ -107,7 +107,8 @@ data = read_meteors(file_in_meteor)
 n_G1 = data["GROUP"].count("G1")
 n_G1A = data["GROUP"].count("G1A")
 
-
+p = int(3)
+q = int(2)
 
 if os.path.exists(checkpoint):
     sim = rebound.Simulation(str(checkpoint))
@@ -198,101 +199,114 @@ else:
             new_time_stop = (data['JD'][i] - data['JD'][0]) * day
             sim.integrate(new_time_stop)
 
-        sma = data['AXIS'][i] * au.value
-        ecc = data['ECC'][i]
-        incl = np.radians(data['INCL'][i])
-        Ome = np.radians(data['NODE'][i])
-        ome = np.radians(data['ARGUP'][i])
+        #sma = data['AXIS'][i] * au.value
+        sma = sim.particles['Jupiter'].a*(3./5.)**(2./3.)
 
-        # FIND EARTH POSSITION
-        pe = sim.particles["399"]
-        EP = np.array([pe.x, pe.y, pe.z])
+        if sma > (data['AXIS'][i] - data['AXISER'][i]) * au.value:
+            l_J = sim.particles['Jupiter'].Omega + sim.particles['Jupiter'].omega + sim.particles['Jupiter'].M
 
-        # FIND TRUE ANOMALY
-        seek_min = minimize(
-            func_dist,
-            x0=np.radians(0.0e0),
-            args=
-                (
-                sma,
-                ecc,
-                incl,
-                Ome,
-                ome,
-                EP,
-                ),
-            bounds=[(-2.*np.pi, 2.*np.pi)],
-            method='Nelder-Mead',
-        )
+            if sma < (data['AXIS'][i] + data['AXISER'][i]) * au.value:
+                ecc = data['ECC'][i]
+                incl = np.radians(data['INCL'][i])
+                Ome = np.radians(data['NODE'][i])
+                ome = np.radians(data['ARGUP'][i])
 
-        nu = seek_min.x[0]
+                varpi = Ome + ome
 
-        hash_meteor = f"{data['CODE'][i]}"
-        # ADD PARTICLE
-        sim.add(
-            m = 0.0e0,
-            a = sma,
-            e = ecc,
-            inc= incl,
-            Omega = Ome,
-            omega = ome,
-            f = nu,
-            hash = hash_meteor
-        )
-        index.append(hash_meteor)
-        with open(file_coll,'a') as f:
-            f.write(f'Body : {data['CODE'][i]}, hash {sim.particles[hash_meteor].hash}\n')
-        if active_cl:
-            for j in range(n_clones):
-                    sma = (data['AXIS'][i] + \
-                        (2.*np.random.rand() - 1)*data['AXISER'][i] )* au.value
-                    ecc = data['ECC'][i] + \
-                        (2.*np.random.rand() - 1)*data['ECCERR'][i]
-                    incl = np.radians(data['INCL'][i] + \
-                        (2.*np.random.rand() - 1)*data['INCLER'][i])
-                    Ome = np.radians(data['NODE'][i] + \
-                        (2.*np.random.rand() - 1)*data['NODEER'][i])
-                    ome = np.radians(data['ARGUP'][i] + \
-                        (2.*np.random.rand() - 1)*data['ARGUPER'][i])
+                M_met = (1+(q/p))*(l_J - varpi + np.pi/4. + np.pi)
+                # FIND EARTH POSSITION
+                # pe = sim.particles["399"]
+                # EP = np.array([pe.x, pe.y, pe.z])
+                #
+                # # FIND TRUE ANOMALY
+                # seek_min = minimize(
+                #     func_dist,
+                #     x0=np.radians(0.0e0),
+                #     args=
+                #         (
+                #         sma,
+                #         ecc,
+                #         incl,
+                #         Ome,
+                #         ome,
+                #         EP,
+                #         ),
+                #     bounds=[(-2.*np.pi, 2.*np.pi)],
+                #     method='Nelder-Mead',
+                # )
+                #
+                # nu = seek_min.x[0]
 
-                    seek_min = minimize(
-                        func_dist,
-                        x0=np.radians(0.0e0),
-                        args=
-                            (
-                            sma,
-                            ecc,
-                            incl,
-                            Ome,
-                            ome,
-                            EP,
-                            ),
-                        bounds=[(-2.*np.pi, 2.*np.pi)],
-                        method='Nelder-Mead',
-                    )
+                hash_meteor = f"{data['CODE'][i]}"
+                # ADD PARTICLE
+                sim.add(
+                    m = 0.0e0,
+                    a = sma,
+                    e = ecc,
+                    inc= incl,
+                    Omega = Ome,
+                    omega = ome,
+                    M = M_met,
+                    hash = hash_meteor
+                )
+                index.append(hash_meteor)
+                with open(file_coll,'a') as f:
+                    f.write(f'Body : {data['CODE'][i]}, hash {sim.particles[hash_meteor].hash}\n')
+                if active_cl:
+                    for j in range(n_clones):
+                            #sma = (data['AXIS'][i] + \
+                            #    (2.*np.random.rand() - 1)*data['AXISER'][i] )* au.value
+                            ecc = data['ECC'][i] + \
+                                (2.*np.random.rand() - 1)*data['ECCERR'][i]
+                            incl = np.radians(data['INCL'][i] + \
+                                (2.*np.random.rand() - 1)*data['INCLER'][i])
+                            Ome = np.radians(data['NODE'][i] + \
+                                (2.*np.random.rand() - 1)*data['NODEER'][i])
+                            ome = np.radians(data['ARGUP'][i] + \
+                                (2.*np.random.rand() - 1)*data['ARGUPER'][i])
 
-                    nu = seek_min.x[0]
-                    hash_cl = f"{data['CODE'][i]}_cl_{j}"
-                    sim.add(
-                        m = 0.0e0,
-                        a = sma,
-                        e = ecc,
-                        inc= incl,
-                        Omega = Ome,
-                        omega = ome,
-                        f = nu,
-                        hash = hash_cl
-                    )
-                    index.append(hash_cl)
-                    with open(file_coll,'a') as f:
-                        f.write(f'Body : {hash_cl}, hash {sim.particles[hash_cl].hash}\n')
-                        f.write(f'a = {sma}, e = {ecc}, i = {incl}, O = {Ome}, o = {ome}, f = {nu}\n')
+                            varpi = Ome + ome
+
+                            M_met = (1+(q/p))*(l_J - varpi + np.pi/4. + np.pi)
+
+                            # seek_min = minimize(
+                            #     func_dist,
+                            #     x0=np.radians(0.0e0),
+                            #     args=
+                            #         (
+                            #         sma,
+                            #         ecc,
+                            #         incl,
+                            #         Ome,
+                            #         ome,
+                            #         EP,
+                            #         ),
+                            #     bounds=[(-2.*np.pi, 2.*np.pi)],
+                            #     method='Nelder-Mead',
+                            # )
+                            #
+                            # nu = seek_min.x[0]
+                            hash_cl = f"{data['CODE'][i]}_cl_{j}"
+                            sim.add(
+                                m = 0.0e0,
+                                a = sma,
+                                e = ecc,
+                                inc= incl,
+                                Omega = Ome,
+                                omega = ome,
+                                M = M_met,
+                                hash = hash_cl
+                            )
+                            index.append(hash_cl)
+                            with open(file_coll,'a') as f:
+                                f.write(f'Body : {hash_cl}, hash {sim.particles[hash_cl].hash}\n')
+                                f.write(f'a = {sma}, e = {ecc}, i = {incl}, O = {Ome}, o = {ome}, f = {M_met}\n')
 
     time_array = np.arange(0,-1.*sim_time*year,-1.*sim_step*year)
     count_file = int(0)
 
 
-
+print("Total number of bodies:",len(index))
 ps = sim.particles
 
 

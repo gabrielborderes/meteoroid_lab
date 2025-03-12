@@ -112,16 +112,17 @@ if active_cl:
         if "_cl_" in item:
             ax.plot(time/year, a[bd+ni_met]/au.value, color=color_cl, alpha=0.2)
         else:
-            if met_group[bd] == "G1":
+            ng = int(bd/(n_clones+1))
+            if met_group[ng] == "G1":
                 color_cl = "blue"
             else:
                 color_cl = "red"
 
-            fig.suptitle(f"{index_met[bd]} - {met_group[bd]}", fontsize=16)
+            #fig.suptitle(f"{index_met[bd]} - {met_group[bd]}", fontsize=16)
             ax.plot(time/year, a[bd+ni_met]/au.value, color=color_cl)
 
-    ax.set_xlabel("a (au)")
-    ax.set_ylabel("time (year)")
+    ax.set_ylabel("a (au)")
+    ax.set_xlabel("time (year)")
 
     plt.tight_layout()
     figure_name = f_orbele / f"a.png"
@@ -182,8 +183,8 @@ else:
 
     #plt.axis("equal")
 
-    ax.set_xlabel("a (au)")
-    ax.set_ylabel("time (year)")
+    ax.set_ylabel("a (au)")
+    ax.set_xlabel("time (year)")
 
     #ax.legend()
     ax.grid(True)
@@ -209,8 +210,8 @@ else:
             ax.plot(time/year, a[bd]/au.value, color="red")
 
         #plt.axis("equal")
-        ax.set_xlabel("a (au)")
-        ax.set_ylabel("time (year)")
+        ax.set_ylabel("a (au)")
+        ax.set_xlabel("time (year)")
         #ax.grid(True)
 
         plt.tight_layout()
