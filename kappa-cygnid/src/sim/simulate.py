@@ -11,10 +11,15 @@ import re
 import configparser
 
 from astropy.constants import GM_sun, au
-from astropy import units
 
-year = (units.year).to(units.second)
-day = (units.day).to(units.second)
+from astropy import units as units
+from astropy.constants import G
+
+
+day_2_year = (units.day).to(units.yr)
+au_2_m = (units.AU).to(units.m)
+auyr_2_ms = (units.AU / units.yr).to(units.m / units.s)
+
 
 def record_coll(sim_pointer, collision):
     from os import path
@@ -88,11 +93,17 @@ file_coll = config["system"]["file_coll"]
 save_file = config["system"]["save_file"]
 checkpoint = config["system"]["checkpoint"]
 
+
+
+
 sim_time = config["sim_param"].getfloat("sim_time")
 sim_step = config["sim_param"].getfloat("sim_step")
 
 major_bodies = config["sim_param"]["major_bodies"].split(", ")
 minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
+
+sim_back = config["sim_param"].getboolean("backward")
+collision = config["sim_param"].getboolean("collision")
 
 active_cl = config["clones"].getboolean("active")
 n_clones = config["clones"].getint("n_clones")
@@ -129,7 +140,11 @@ if os.path.exists(checkpoint):
                     index.append(hash_cl)
 
 
-    time_array = np.arange(sim.t,-1.*sim_time*year,-1.*sim_step*year)
+    if sim_back:
+        time_array = np.arange(0,-1.*sim_time,-1.*sim_step)
+    else:
+        time_array = np.arange(0,sim_time,sim_step)
+
     dir, name= os.path.split(save_file)
 
     padrao = re.compile(rf"^{re.escape(name)}_(\d+)\.h5$")
@@ -152,15 +167,15 @@ if os.path.exists(checkpoint):
 else:
     # Starting simulation
     sim = rebound.Simulation()
-    sim.units = ("m", "s", "kg")
+    sim.units = ('AU', 'yr', 'kg')
 
     # Starting the system on the latest meteor time
     date_ini = f"JD{max(data['JD']):.10f}"
 
     #kappa_cygnid = tuple(map(float, config["sim_param"]["kappa_cygnid"].split(", ")))
 
-    with open(file_coll,'w') as f:
-        f.write(f'Dictionary\n')
+    # with open(file_coll,'w') as f:
+    #     f.write(f'Dictionary\n')
 
     for i in range(len(major_bodies)):
         sim.add(
@@ -195,10 +210,10 @@ else:
 
         # IF IS NOT THE MOST RECENT, IT EVOLVE THE SYSTEM
         if i > 0:
-            new_time_stop = (data['JD'][i] - data['JD'][0]) * day
+            new_time_stop = (data['JD'][i] - data['JD'][0]) * day_2_year
             sim.integrate(new_time_stop)
 
-        sma = data['AXIS'][i] * au.value
+        sma = data['AXIS'][i]
         ecc = data['ECC'][i]
         incl = np.radians(data['INCL'][i])
         Ome = np.radians(data['NODE'][i])
@@ -245,7 +260,7 @@ else:
         if active_cl:
             for j in range(n_clones):
                     sma = (data['AXIS'][i] + \
-                        (2.*np.random.rand() - 1)*data['AXISER'][i] )* au.value
+                        (2.*np.random.rand() - 1)*data['AXISER'][i] )
                     ecc = data['ECC'][i] + \
                         (2.*np.random.rand() - 1)*data['ECCERR'][i]
                     incl = np.radians(data['INCL'][i] + \
@@ -288,7 +303,11 @@ else:
                         f.write(f'Body : {hash_cl}, hash {sim.particles[hash_cl].hash}\n')
                         f.write(f'a = {sma}, e = {ecc}, i = {incl}, O = {Ome}, o = {ome}, f = {nu}\n')
 
-    time_array = np.arange(0,-1.*sim_time*year,-1.*sim_step*year)
+    if sim_back:
+        time_array = np.arange(0,-1.*sim_time,-1.*sim_step)
+    else:
+        time_array = np.arange(0,sim_time,sim_step)
+
     count_file = int(0)
 
 
@@ -324,14 +343,14 @@ for ti, t in enumerate(time_array):
 
     for j, idx in enumerate(index):
         p = ps[f"{idx}"]
-        x[j][count] = p.x
-        y[j][count] = p.y
-        z[j][count] = p.z
-        vx[j][count] = p.vx
-        vy[j][count] = p.vy
-        vz[j][count] = p.vz
+        x[j][count] = p.x*au_2_m
+        y[j][count] = p.y*au_2_m
+        z[j][count] = p.z*au_2_m
+        vx[j][count] = p.vx*auyr_2_ms
+        vy[j][count] = p.vy*auyr_2_ms
+        vz[j][count] = p.vz*auyr_2_ms
         if j > 0:
-            a[j][count] = p.a
+            a[j][count] = p.a*au_2_m
             e[j][count] = p.e
             I[j][count] = p.inc
             O[j][count] = p.Omega
@@ -371,4 +390,27 @@ for ti, t in enumerate(time_array):
 
 pbar.close()
 
+# Save data
+if count != 0:
+    sim.save_to_file(str(checkpoint))
+    file_name = f"{save_file}_{count_file}.h5"
+    with h5py.File(file_name, "w") as hf:
+        hf.create_dataset("index", data=index)
+        hf.create_dataset("time", data=time_array)
+        hf.create_dataset("x", data=x)
+        hf.create_dataset("y", data=y)
+        hf.create_dataset("z", data=z)
+        hf.create_dataset("vx", data=vx)
+        hf.create_dataset("vy", data=vy)
+        hf.create_dataset("vz", data=vz)
+        hf.create_dataset("a", data=a)
+        hf.create_dataset("e", data=e)
+        hf.create_dataset("i", data=I)
+        hf.create_dataset("Omega", data=O)
+        hf.create_dataset("omega", data=o)
+        hf.create_dataset("f", data=f)
+        hf.create_dataset("M", data=M)
+        hf.create_dataset("met_code", data=data['CODE'])
+        hf.create_dataset("met_group", data=data["GROUP"])
 
+    count_file = int(count_file+1)

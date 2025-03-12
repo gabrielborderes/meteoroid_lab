@@ -16,6 +16,13 @@ from astropy import units
 year = (units.year).to(units.second)
 day = (units.day).to(units.second)
 
+
+# converting constants
+day_2_year = (units.day).to(units.yr)
+au_2_m = (units.AU).to(units.m)
+auyr_2_ms = (units.AU / units.yr).to(units.m / units.s)
+##########
+
 def record_coll(sim_pointer, collision):
     from os import path
 
@@ -153,7 +160,7 @@ if os.path.exists(checkpoint):
 else:
     # Starting simulation
     sim = rebound.Simulation()
-    sim.units = ("m", "s", "kg")
+    sim.units = ('AU', 'yr', 'kg')
 
     # Starting the system on the latest meteor time
     date_ini = f"JD{max(data['JD']):.10f}"
@@ -338,14 +345,14 @@ for ti, t in enumerate(time_array):
 
     for j, idx in enumerate(index):
         p = ps[f"{idx}"]
-        x[j][count] = p.x
-        y[j][count] = p.y
-        z[j][count] = p.z
-        vx[j][count] = p.vx
-        vy[j][count] = p.vy
-        vz[j][count] = p.vz
+        x[j][count] = p.x*au_2_m
+        y[j][count] = p.y*au_2_m
+        z[j][count] = p.z*au_2_m
+        vx[j][count] = p.vx*auyr_2_ms
+        vy[j][count] = p.vy*auyr_2_ms
+        vz[j][count] = p.vz*auyr_2_ms
         if j > 0:
-            a[j][count] = p.a
+            a[j][count] = p.a*au_2_m
             e[j][count] = p.e
             I[j][count] = p.inc
             O[j][count] = p.Omega
@@ -385,4 +392,27 @@ for ti, t in enumerate(time_array):
 
 pbar.close()
 
+# Save data
+if count != 0:
+    sim.save_to_file(str(checkpoint))
+    file_name = f"{save_file}_{count_file}.h5"
+    with h5py.File(file_name, "w") as hf:
+        hf.create_dataset("index", data=index)
+        hf.create_dataset("time", data=time_array)
+        hf.create_dataset("x", data=x)
+        hf.create_dataset("y", data=y)
+        hf.create_dataset("z", data=z)
+        hf.create_dataset("vx", data=vx)
+        hf.create_dataset("vy", data=vy)
+        hf.create_dataset("vz", data=vz)
+        hf.create_dataset("a", data=a)
+        hf.create_dataset("e", data=e)
+        hf.create_dataset("i", data=I)
+        hf.create_dataset("Omega", data=O)
+        hf.create_dataset("omega", data=o)
+        hf.create_dataset("f", data=f)
+        hf.create_dataset("M", data=M)
+        hf.create_dataset("met_code", data=data['CODE'])
+        hf.create_dataset("met_group", data=data["GROUP"])
 
+    count_file = int(count_file+1)
