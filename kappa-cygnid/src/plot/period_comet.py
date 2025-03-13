@@ -14,11 +14,7 @@ import glob
 from astropy import units
 
 
-def compute_a(x, y, z,vx, vy, vz):
-    R = np.sqrt(x**2 + y**2 + z**2)
-    V2 = vx**2 + vy**2 + vz**2
-    a = 2./R - V2/(GM_sun.value)
-    return 1./a
+
 
 def extract_number(arquivo):
     match = re.search(r'_(\d+)\.h5$', arquivo)
@@ -29,15 +25,19 @@ year = (units.year).to(units.second)
 
 
 config = configparser.ConfigParser()
-config.read("param_ress.config")
+config.read("config/config_ress.ini")
 
-input_files = config["system"]["save_file"]
+out_folder = config["system"]["out_folder"]
+save_file = config["system"]["save_file"]
+save_time = config["system"]["save_time"]
+
+out = pathlib.Path(out_folder).resolve()
+
+input_files = out / save_file
 
 major_bodies = config["sim_param"]["major_bodies"].split(", ")
 minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 
-active_cl = config["clones"].getboolean("active")
-n_clones = config["clones"].getint("n_clones")
 
 files_list_not_ord = glob.glob(f"{input_files}_*.h5")
 file_list = sorted(files_list_not_ord, key=extract_number)
@@ -46,50 +46,43 @@ ni_met = len(major_bodies) + len(minor_bodies)
 time = None
 met_group = None
 
+file_name = out / save_time
+with h5py.File(file_name, "r") as hf:
+        time = hf["time"][:]
+        index = hf["index"][:]
+        met_group = hf["met_group"][:]
+
+index  = [indx.decode() for indx in index]
+met_group = [met.decode() for met in met_group]
+n_G1 = met_group.count("G1")
+n_G1A = met_group.count("G1A")
+
 first = True
 n_file = 0
 for file_name in tqdm(file_list):
     with h5py.File(file_name, "r") as hf:
         if first:
-            time = hf["time"][:]
-            index = hf["index"][:]
-            met_group = hf["met_group"][:]
-            index  = [indx.decode() for indx in index]
-            met_group = [met.decode() for met in met_group]
-            n_G1 = met_group.count("G1")
-            n_G1A = met_group.count("G1A")
             first = False
-            atmp = hf["a"][:]
             ecc = hf["e"][:]
             xc = hf["x"][:]
             yc = hf["y"][:]
             zc = hf["z"][:]
-            vxc = hf["vx"][:]
-            vyc = hf["vy"][:]
-            vzc = hf["vz"][:]
-            per = np.zeros((atmp.shape[1]*len(file_list)))
-            ec = np.zeros((atmp.shape[1]*len(file_list)))
-            d = np.zeros((atmp.shape[1]*len(file_list)))
+            per_tmp = hf["Per"][:]
+            per = np.zeros((ecc.shape[1]*len(file_list)))
+            ec = np.zeros((ecc.shape[1]*len(file_list)))
+            d = np.zeros((ecc.shape[1]*len(file_list)))
         else:
-            atmp = hf["a"][:]
             ecc = hf["e"][:]
+            xc = hf["x"][:]
+            yc = hf["y"][:]
+            zc = hf["z"][:]
+            per_tmp = hf["Per"][:]
 
     n_c = index.index('1900 Y1')
-    for t_tmp in range(atmp.shape[1]):
-        a = compute_a(xc[n_c][t_tmp]*1.e3, yc[n_c][t_tmp]*1.e3, zc[n_c][t_tmp]*1.e3,vxc[n_c][t_tmp]*1.e3, vyc[n_c][t_tmp]*1.e3, vzc[n_c][t_tmp]*1.e3)
-        # a = compute_a(
-        #     (xc[n_c][t_tmp]-xc[0][t_tmp])*1.e3,
-        #     (yc[n_c][t_tmp]-yc[0][t_tmp])*1.e3,
-        #     (zc[n_c][t_tmp]-zc[0][t_tmp])*1.e3,
-        #     (vxc[n_c][t_tmp]-vxc[0][t_tmp])*1.e3,
-        #     (vyc[n_c][t_tmp]-vyc[0][t_tmp])*1.e3,
-        #     (vzc[n_c][t_tmp]-vzc[0][t_tmp])*1.e3
-        # )
-
-        #per[t_tmp + atmp.shape[1]*n_file] = np.sqrt((4.*np.pi**2)*(atmp[n_c][t_tmp]**3/GM_sun.value))
-        per[t_tmp + atmp.shape[1]*n_file] = np.sqrt((4.*np.pi**2)*(a**3/GM_sun.value))
-        ec[t_tmp + atmp.shape[1]*n_file] = ecc[n_c][t_tmp]
-        d[t_tmp + atmp.shape[1]*n_file] = np.sqrt(xc[n_c][t_tmp]**2+yc[n_c][t_tmp]**2+zc[n_c][t_tmp]**2)
+    for t_tmp in range(ecc.shape[1]):
+        per[t_tmp + ecc.shape[1]*n_file] = per_tmp[n_c][t_tmp]
+        ec[t_tmp + ecc.shape[1]*n_file] = ecc[n_c][t_tmp]
+        d[t_tmp + ecc.shape[1]*n_file] = np.sqrt(xc[n_c][t_tmp]**2+yc[n_c][t_tmp]**2+zc[n_c][t_tmp]**2)
 
     n_file = n_file + 1
 

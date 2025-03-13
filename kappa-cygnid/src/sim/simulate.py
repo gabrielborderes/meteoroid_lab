@@ -1,3 +1,4 @@
+import pathlib
 import rebound
 from tqdm import tqdm
 import numpy as np
@@ -10,13 +11,12 @@ import os
 import re
 import configparser
 
-from astropy.constants import GM_sun, au
-
 from astropy import units as units
-from astropy.constants import G
+
 
 
 day_2_year = (units.day).to(units.yr)
+year_2_s = (units.yr).to(units.s)
 au_2_m = (units.AU).to(units.m)
 auyr_2_ms = (units.AU / units.yr).to(units.m / units.s)
 
@@ -103,7 +103,7 @@ minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 sim_back = config["sim_param"].getboolean("backward")
 collision = config["sim_param"].getboolean("collision")
 
-fac_flush = config["sim_param"]..getint("fac_flush")
+fac_flush = config["sim_param"].getint("fac_flush")
 
 active_cl = config["clones"].getboolean("active")
 n_clones = config["clones"].getint("n_clones")
@@ -183,6 +183,8 @@ else:
 
     #kappa_cygnid = tuple(map(float, config["sim_param"]["kappa_cygnid"].split(", ")))
     if collision:
+        print("deu ruim")
+        print(collision)
         with open(out / file_coll,'w') as f:
             f.write(f'Dictionary\n')
 
@@ -209,7 +211,8 @@ else:
                 f.write(f'Body : {minor_bodies[i]}, hash {sim.particles[minor_bodies[i]].hash}\n')
 
     # SORT THE METEOR SEQUENCE FROM THE LATEST (MOST RECENT) TO THE OLDEST
-    sor_ind = sorted(range(len(data['JD'])), key=lambda i: data['JD'][i], reverse=True)
+    sor_ind = sorted(range(len(data['JD'])), key=lambda i: data['JD'][i], reverse=sim_back)
+
 
     sim.move_to_com()
     sim.integrator = "ias15"
@@ -268,50 +271,52 @@ else:
             hash = hash_meteor
         )
         index.append(hash_meteor)
-        with open(out / file_coll,'a') as f:
-            f.write(f'Body : {data['CODE'][i]}, hash {sim.particles[hash_meteor].hash}\n')
+        if collision:
+            with open(out / file_coll,'a') as f:
+                f.write(f'Body : {data['CODE'][i]}, hash {sim.particles[hash_meteor].hash}\n')
         if active_cl:
             for j in range(n_clones):
-                    sma = (data['AXIS'][i] + \
-                        (2.*np.random.rand() - 1)*data['AXISER'][i] )
-                    ecc = data['ECC'][i] + \
-                        (2.*np.random.rand() - 1)*data['ECCERR'][i]
-                    incl = np.radians(data['INCL'][i] + \
-                        (2.*np.random.rand() - 1)*data['INCLER'][i])
-                    Ome = np.radians(data['NODE'][i] + \
-                        (2.*np.random.rand() - 1)*data['NODEER'][i])
-                    ome = np.radians(data['ARGUP'][i] + \
-                        (2.*np.random.rand() - 1)*data['ARGUPER'][i])
+                sma = (data['AXIS'][i] + \
+                    (2.*np.random.rand() - 1)*data['AXISER'][i] )
+                ecc = data['ECC'][i] + \
+                    (2.*np.random.rand() - 1)*data['ECCERR'][i]
+                incl = np.radians(data['INCL'][i] + \
+                    (2.*np.random.rand() - 1)*data['INCLER'][i])
+                Ome = np.radians(data['NODE'][i] + \
+                    (2.*np.random.rand() - 1)*data['NODEER'][i])
+                ome = np.radians(data['ARGUP'][i] + \
+                    (2.*np.random.rand() - 1)*data['ARGUPER'][i])
 
-                    seek_min = minimize(
-                        func_dist,
-                        x0=np.radians(0.0e0),
-                        args=
-                            (
-                            sma,
-                            ecc,
-                            incl,
-                            Ome,
-                            ome,
-                            EP,
-                            ),
-                        bounds=[(-2.*np.pi, 2.*np.pi)],
-                        method='Nelder-Mead',
-                    )
+                seek_min = minimize(
+                    func_dist,
+                    x0=np.radians(0.0e0),
+                    args=
+                        (
+                        sma,
+                        ecc,
+                        incl,
+                        Ome,
+                        ome,
+                        EP,
+                        ),
+                    bounds=[(-2.*np.pi, 2.*np.pi)],
+                    method='Nelder-Mead',
+                )
 
-                    nu = seek_min.x[0]
-                    hash_cl = f"{data['CODE'][i]}_cl_{j}"
-                    sim.add(
-                        m = 0.0e0,
-                        a = sma,
-                        e = ecc,
-                        inc= incl,
-                        Omega = Ome,
-                        omega = ome,
-                        f = nu,
-                        hash = hash_cl
-                    )
-                    index.append(hash_cl)
+                nu = seek_min.x[0]
+                hash_cl = f"{data['CODE'][i]}_cl_{j}"
+                sim.add(
+                    m = 0.0e0,
+                    a = sma,
+                    e = ecc,
+                    inc= incl,
+                    Omega = Ome,
+                    omega = ome,
+                    f = nu,
+                    hash = hash_cl
+                )
+                index.append(hash_cl)
+                if collision:
                     with open(out / file_coll,'a') as f:
                         f.write(f'Body : {hash_cl}, hash {sim.particles[hash_cl].hash}\n')
                         f.write(f'a = {sma}, e = {ecc}, i = {incl}, O = {Ome}, o = {ome}, f = {nu}\n')
@@ -330,12 +335,15 @@ else:
 # PRE-SAVING
 with h5py.File(out / save_time, "w") as hf:
     hf.create_dataset("index", data=index)
-    hf.create_dataset("time", data=time_array)
+    hf.create_dataset("time", data=time_array*year_2_s)
     hf.create_dataset("met_code", data=data['CODE'])
     hf.create_dataset("met_group", data=data["GROUP"])
 
 
 # SIMULATION
+
+C_per = 2.*np.pi/np.sqrt(sim.G)
+M_sun = sim.particles["Sun"].m
 
 ps = sim.particles
 
@@ -355,7 +363,7 @@ O = np.zeros((nbd, flush))
 o = np.zeros((nbd, flush))
 f = np.zeros((nbd, flush))
 M = np.zeros((nbd, flush))
-
+Per = np.zeros((nbd, flush))
 
 count = int(0)
 pbar = tqdm(total=len(time_array))
@@ -380,6 +388,7 @@ for ti, t in enumerate(time_array):
             o[j][count] = p.omega
             f[j][count] = p.f
             M[j][count] = p.M
+            Per[j][count] = C_per*np.sqrt(p.a**3 / (p.m + M_sun)) * year_2_s
 
     count =  int(count+1)
     if count == flush:
@@ -401,11 +410,9 @@ for ti, t in enumerate(time_array):
             hf.create_dataset("omega", data=o)
             hf.create_dataset("f", data=f)
             hf.create_dataset("M", data=M)
-
+            hf.create_dataset("Per", data=Per)
 
         count_file = int(count_file+1)
-
-
 
 
 pbar.close()
@@ -428,6 +435,7 @@ if count != 0:
         hf.create_dataset("omega", data=o)
         hf.create_dataset("f", data=f)
         hf.create_dataset("M", data=M)
+        hf.create_dataset("Per", data=Per)
 
 
     count_file = int(count_file+1)
