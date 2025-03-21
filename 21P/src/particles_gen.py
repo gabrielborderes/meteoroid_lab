@@ -31,22 +31,23 @@ from config import (
 np.random.seed(426347637)
 
 
-key_sim = np.zeros(len(solar_system_objects))
-
 if not init_sim_file.is_file():
     sim = rebound.Simulation()
     # Get data from NASA Horizons
     try:
         sim.units = ("m", "s", "kg")
-        date = "2025-02-18 00:00"
-        for i in range(len(solar_system_objects)):
-            sim.add(solar_system_objects[i], date=date, hash=solar_system_objects[i])
-            key_sim[i] = sim.particles[solar_system_objects[i]].hash.value
+        date = "JD2409037.09701"
+        for obj in solar_system_objects:
+            sim.add(obj, date=date, hash=obj)
+
     except socket.error:
         print("A socket error occured. Maybe Horizons is down?")
         sys.exit(0)  # we ignore the error and exit
 
-
+    # CHECK mass
+    for obj in solar_system_objects:
+        if sim.particles[obj].m <= 0.0:
+            sim.particles[obj].m = 1.0
     sim.N_active = sim.N - 1
     sim.save_to_file(str(init_sim_file))
 
@@ -118,8 +119,10 @@ for i in range(N_part):
 particle_velocities = np.full((N_part, ), np.nan, dtype=np.float64)
 particle_distances = np.full((N_part, ), np.nan, dtype=np.float64)
 
+
 part_ind = 0
 max_tries = 100
+
 for step_i, num in tqdm(enumerate(N_activity), total=len(outgass_time)):
     for pi in range(num):
         particle_mass = (
@@ -176,7 +179,6 @@ with h5py.File(str(particle_file), "w") as hf:
     hf.create_dataset("masslosses", data=masslosses)
     hf.create_dataset("helio_distances", data=helio_distances)
     hf.create_dataset("ejection_possible", data=ejection_possible)
-    hf.create_dataset("key_sim", data=key_sim)
 
 
 

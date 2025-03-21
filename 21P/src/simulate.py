@@ -1,6 +1,7 @@
 import rebound
 import reboundx
 import scipy.constants as constants
+import os
 
 import h5py
 import numpy as np
@@ -15,39 +16,13 @@ def record_coll(sim_pointer, collision):
 
     ps = sim.particles
 
-    # if (code_sim[ps[collision.p1].hash.value] in solar_system_objects ):
-    #     planet = collision.p1
-    #     particle = collision.p2
-    # elif (code_sim[ps[collision.p2].hash.value] in solar_system_objects ):
-    #     planet = collision.p2
-    #     particle = collision.p1
-    # else:
-    #     return 0
-    #
-    # print(sim.t,'close enconteur ', code_sim[ps[planet].hash.value],code_sim[ps[particle].hash.value])
-    #
-    # osPart = ps[particle].orbit(primary=ps[planet])
-    #
-    # aC,eC,iC = osPart.a , osPart.e, osPart.inc
-    #
-    # rp =  aC*(1-eC)
-    #
-    # deltaP = ps[particle] - sim.particles[planet]
-    # deltaR = np.sqrt(deltaP.x**2 + deltaP.y**2 + deltaP.z**2)
-
     with open(collisionFile,'a') as f:
-        f.write(f'{collision.p1};{collision.p2}\n')
-        #f.write(f'{sim.t};{deltaR};{rp};{code_sim[ps[planet].hash.value]};{code_sim[ps[particle].hash.value]}\n')
+        f.write(f'{sim.t}-{sim.particles[collision.p1].hash}-{sim.particles[collision.p2].hash}\n')
 
-    return 0
-    # if (code_sim[sim.particles[collision.p1].hash.value] in solar_system_objects):
-    #     return 2
-    # else:
-    #     return 1
-
-
-
-
+    if (sim.particles[collision.p1].m > 0.0):
+        return 2
+    else:
+        return 1
 
 
 try:
@@ -70,6 +45,8 @@ except ImportError:
 
 from config import (
     data_folder,
+    checkpoint,
+    dictionary_file,
     solar_luminosity,
     solar_system_objects,
     init_sim_file,
@@ -82,9 +59,14 @@ from config import (
     RotVel,
     particle_file,
     ephem_file,
+    factor_flush,
+
 )
 
-LONG_ARCH = True
+#LONG_ARCH = True
+
+
+
 
 
 if size <= 1:
@@ -94,7 +76,7 @@ if size <= 1:
 
 else:
     filename = data_folder / f"cache_21P_{rank}.bin"
-    save_file = data_folder / f"ephemerides_21P_{rank}.h5"
+    save_file = f"ephemerides_21P_{rank}.h5"
     collisionFile = data_folder / f'closeRegister_{rank}.txt'
 
 with open(collisionFile,'w') as f:
@@ -105,18 +87,28 @@ with h5py.File(particle_file, 'r') as f:
     shell_part = f["shell_part"][:]
     N_activity = f["N_activity"][:]
     particle_velocities = f["particle_velocities"][:]
-    key_sim = f["key_sim"][:]
-
-code_sim = dict()
-
-for i, key in enumerate(key_sim):
-    code_sim[str(key)] = solar_system_objects[i]
 
 
 N_part = shell_part.shape[0]
 nb = len(solar_system_objects)
 
-sim = rebound.Simulation(str(init_sim_file))
+
+if os.path.exists(checkpoint):
+    print("checkpoint reboot not implemented yet")
+    sys.exit()
+else:
+    sim = rebound.Simulation(str(init_sim_file))
+    count_file = int(0)
+
+
+
+with open(dictionary_file,'w') as f:
+    for i in range(len(solar_system_objects)):
+        f.write(f"{solar_system_objects[i]}, hash: {sim.particles[solar_system_objects[i]].hash}\n")
+
+
+
+
 
 
 
@@ -134,6 +126,7 @@ ps = sim.particles
 
 
 
+
 rebx = reboundx.Extras(sim)
 rf = rebx.load_force("radiation_forces")
 rebx.add_force(rf)
@@ -146,16 +139,39 @@ ps["Sun"].params["radiation_source"] = 1
 iter_inds = np.arange(rank, N_part, size, dtype=np.int64)
 N_process_part = len(iter_inds)
 
-x = np.zeros((sim.N + N_process_part, Nout))
-y = np.zeros((sim.N + N_process_part, Nout))
-z = np.zeros((sim.N + N_process_part, Nout))
-vx = np.zeros((sim.N + N_process_part, Nout))
-vy = np.zeros((sim.N + N_process_part, Nout))
-vz = np.zeros((sim.N + N_process_part, Nout))
+
+C_per = 2.*np.pi/np.sqrt(sim.G)
+M_sun = sim.particles["Sun"].m
+
+flush = int(Nout/factor_flush)
+
+x = np.zeros((sim.N + N_process_part, flush))
+y = np.zeros((sim.N + N_process_part, flush))
+z = np.zeros((sim.N + N_process_part, flush))
+vx = np.zeros((sim.N + N_process_part, flush))
+vy = np.zeros((sim.N + N_process_part, flush))
+vz = np.zeros((sim.N + N_process_part, flush))
+
+oe_a = np.zeros((sim.N + N_process_part, flush))
+oe_e = np.zeros((sim.N + N_process_part, flush))
+oe_i = np.zeros((sim.N + N_process_part, flush))
+oe_O = np.zeros((sim.N + N_process_part, flush))
+oe_o = np.zeros((sim.N + N_process_part, flush))
+oe_f = np.zeros((sim.N + N_process_part, flush))
+oe_M = np.zeros((sim.N + N_process_part, flush))
+
+oe_Per = np.zeros((sim.N + N_process_part, flush))
+
+
 id_part = 0
 
 pbar = tqdm(total=len(sim_time), position=rank)
 
+# print(solar_system_objects[-1])
+#
+# print(sim.particles[solar_system_objects[-1]])
+
+count = int(0)
 for ti, t in enumerate(sim_time):
     sim.integrate(t)
     pbar.update(1)
@@ -168,7 +184,10 @@ for ti, t in enumerate(sim_time):
                 id_part += 1
                 continue
 
-            psc = ps[solar_system_objects[-1]]
+            # print(">>>>>",solar_system_objects[-1])
+            # print(sim.particles[solar_system_objects[-1]])
+
+            psc = sim.particles[solar_system_objects[-1]]
             part_vel = particle_velocities[id_part]
             # Consider the velocity as rotating in plane of the inertial frame
             CRotVel_x = -RotVel * body_radius * shell_part[id_part, 2]
@@ -191,7 +210,8 @@ for ti, t in enumerate(sim_time):
                 hash=f"{id_part}",
             )
             ps[f"{id_part}"].r = 0.0e0
-            code_sim[ps[f"{id_part}"].hash.value] = f"{id_part}"
+            with open(dictionary_file,'a') as f:
+                f.write(f"{id_part}, hash: {sim.particles[f"{id_part}"].hash}\n")
 
             grain_radius = shell_part[id_part, 0]  # grain radius in m
             Q_pr = 1.0
@@ -214,12 +234,21 @@ for ti, t in enumerate(sim_time):
 
     for bind in range(nb):
         p = ps[f"{solar_system_objects[bind]}"]
-        x[bind][ti] = p.x
-        y[bind][ti] = p.y
-        z[bind][ti] = p.z
-        vx[bind][ti] = p.vx
-        vy[bind][ti] = p.vy
-        vz[bind][ti] = p.vz
+        x[bind][count] = p.x
+        y[bind][count] = p.y
+        z[bind][count] = p.z
+        vx[bind][count] = p.vx
+        vy[bind][count] = p.vy
+        vz[bind][count] = p.vz
+        if bind != 0:
+            oe_a[bind][count] = p.a
+            oe_e[bind][count] = p.e
+            oe_i[bind][count] = p.inc
+            oe_O[bind][count] = p.Omega
+            oe_o[bind][count] = p.omega
+            oe_f[bind][count] = p.f
+            oe_M[bind][count] = p.M
+            oe_Per[bind][count] = C_per*np.sqrt(p.a**3 / (p.m + M_sun))
 
     for arr_ind, pind in enumerate(iter_inds):
         # if pind >= id_part:
@@ -237,24 +266,87 @@ for ti, t in enumerate(sim_time):
         # else:
         #     break
         if p_exist:
-            x[nb + arr_ind][ti] = p.x
-            y[nb + arr_ind][ti] = p.y
-            z[nb + arr_ind][ti] = p.z
-            vx[nb + arr_ind][ti] = p.vx
-            vy[nb + arr_ind][ti] = p.vy
-            vz[nb + arr_ind][ti] = p.vz
+            x[nb + arr_ind][count] = p.x
+            y[nb + arr_ind][count] = p.y
+            z[nb + arr_ind][count] = p.z
+            vx[nb + arr_ind][count] = p.vx
+            vy[nb + arr_ind][count] = p.vy
+            vz[nb + arr_ind][count] = p.vz
+            oe_a[nb + arr_ind][count] = p.a
+            oe_e[nb + arr_ind][count] = p.e
+            oe_i[nb + arr_ind][count] = p.inc
+            oe_O[nb + arr_ind][count] = p.Omega
+            oe_o[nb + arr_ind][count] = p.omega
+            oe_f[nb + arr_ind][count] = p.f
+            oe_M[nb + arr_ind][count] = p.M
+            oe_Per[nb + arr_ind][count] = C_per*np.sqrt(p.a**3 / (p.m + M_sun))
+
+
+
+    count =  int(count+1)
+    if count == flush:
+        count = int(0)
+
+        sim.save_to_file(str(checkpoint))
+
+        sv_folder = data_folder / f"part_{count_file}"
+        sv_folder.mkdir(parents=True, exist_ok=True)
+
+        file_name = sv_folder / save_file
+        # Save data
+        with h5py.File(str(file_name), "w") as hf:
+            hf.create_dataset("index", data=iter_inds)
+            hf.create_dataset("t", data=sim_time)
+            hf.create_dataset("x", data=x)
+            hf.create_dataset("y", data=y)
+            hf.create_dataset("z", data=z)
+            hf.create_dataset("vx", data=vx)
+            hf.create_dataset("vy", data=vy)
+            hf.create_dataset("vz", data=vz)
+            hf.create_dataset("a", data=oe_a)
+            hf.create_dataset("e", data=oe_e)
+            hf.create_dataset("i", data=oe_i)
+            hf.create_dataset("O", data=oe_O)
+            hf.create_dataset("o", data=oe_o)
+            hf.create_dataset("f", data=oe_a)
+            hf.create_dataset("M", data=oe_a)
+            hf.create_dataset("Per", data=oe_Per)
+
+        count_file = int(count_file+1)
+
+
+
 
 pbar.close()
-# Save data
-with h5py.File(str(save_file), "w") as hf:
-    hf.create_dataset("index", data=iter_inds)
-    hf.create_dataset("t", data=sim_time)
-    hf.create_dataset("x", data=x)
-    hf.create_dataset("y", data=y)
-    hf.create_dataset("z", data=z)
-    hf.create_dataset("vx", data=vx)
-    hf.create_dataset("vy", data=vy)
-    hf.create_dataset("vz", data=vz)
+
+if count != 0:
+    sim.save_to_file(str(checkpoint))
+
+    sv_folder = data_folder / f"part_{count_file}"
+    sv_folder.mkdir(parents=True, exist_ok=True)
+
+    file_name = sv_folder / save_file
+    with h5py.File(str(file_name), "w") as hf:
+        hf.create_dataset("index", data=iter_inds)
+        hf.create_dataset("t", data=sim_time)
+        hf.create_dataset("x", data=x)
+        hf.create_dataset("y", data=y)
+        hf.create_dataset("z", data=z)
+        hf.create_dataset("vx", data=vx)
+        hf.create_dataset("vy", data=vy)
+        hf.create_dataset("vz", data=vz)
+        hf.create_dataset("a", data=oe_a)
+        hf.create_dataset("e", data=oe_e)
+        hf.create_dataset("i", data=oe_i)
+        hf.create_dataset("O", data=oe_O)
+        hf.create_dataset("o", data=oe_o)
+        hf.create_dataset("f", data=oe_a)
+        hf.create_dataset("M", data=oe_a)
+        hf.create_dataset("Per", data=oe_Per)
+
+    count_file = int(count_file+1)
+
+
 
 sim.save_to_file(str(filename))
 

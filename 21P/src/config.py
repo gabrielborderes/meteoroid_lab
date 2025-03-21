@@ -5,21 +5,25 @@ data_folder = pathlib.Path("data").resolve()
 if not data_folder.is_dir():
     data_folder.mkdir()
 
+dictionary_file = data_folder / "dictionary.txt"
 init_sim_file = data_folder / "cache_21P_init.bin"
 particle_file = data_folder / "particles_21P.h5"
 ephem_file = data_folder / f"ephemerides_21P_all.h5"
+checkpoint = data_folder / "reboot.bin"
 
+
+factor_flush = 100
 
 
 # SIMULATION Parameters
 day = 24.0 * 3600.0
 year = 365.25 * day
 
-sim_tf = 70. * year
-outgass_tf = 7 * year
+sim_tf = 200. * year
+outgass_tf = 7. * year
 
-sim_delta = 0.01 * year
-outgass_delta = 1. * day
+sim_delta = 1 * day
+outgass_delta = 1 * day
 
 outgass_time = np.arange(0,outgass_tf ,outgass_delta)
 sim_wo_outgass = np.arange(outgass_tf + day, sim_tf ,sim_delta)
