@@ -28,6 +28,8 @@ from config_3200Phaethon import (
     ephem_file,
     Nog,
     init_sim_file,
+    min_size_log,
+    max_size_log,
 )
 nb = len(solar_system_objects)
 
