@@ -50,11 +50,12 @@ if not init_sim_file.is_file():
     sim.N_active = sim.N - 1
     t = -1850.5*365.25*24.*3600.
     sim.integrate(t)
+    sim.particles['Earth'].r = 1.88e-2 * constants.au
     sim.save_to_file(str(init_sim_file))
 
 sim = rebound.Simulation(str(init_sim_file))
 
-sim.particles['Earth'].r = 1.88e-2 * constants.au
+
 
 n_bd = len(solar_system_objects)
 ps = sim.particles
