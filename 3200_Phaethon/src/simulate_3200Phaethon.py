@@ -132,8 +132,8 @@ sim.move_to_com()
 sim.integrator = "ias15"
 # Let's save it for next time
 # Note: sim.save_to_file() only saves the particle data, not the integrator settings, etc.
-sim.collision = "direct"
-sim.collision_resolve = record_coll
+# sim.collision = "direct"
+# sim.collision_resolve = record_coll
 
 # Set the integration time
 ps = sim.particles
@@ -167,6 +167,9 @@ for ti, t in enumerate(sim_time):
     sim.integrate(t)
     pbar.update(1)
 
+    if ti == N_activity.shape[0]:
+        sim.collision = "direct"
+        sim.collision_resolve = record_coll
 
     if ti < N_activity.shape[0]:
         pbar.set_description(f"added {N_activity[ti]} particles")
