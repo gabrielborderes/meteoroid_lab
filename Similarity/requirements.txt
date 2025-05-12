@@ -1,14 +1,9 @@
-dasst
-rebound
-reboundx
-matplotlib
+mpcorbfile
+astroquery
+pathlib
+tqdm
 numpy
 scipy
-mpi4py
-h5py
-tqdm
 astropy
 
-mpi4py
 
-rebound reboundx matplotlib numpy scipy h5py tqdm
