@@ -15,14 +15,19 @@ checkpoint = data_folder / "reboot.bin"
 factor_flush = 100
 
 
+srp_active = True
+
 # SIMULATION Parameters
 day = 24.0 * 3600.0
 year = 365.25 * day
 
-sim_tf = 200. * year
+#sim_tf = 10000. * year #long
+sim_tf = 168. * year
+#sim_tf = 25. * year
 outgass_tf = 7. * year
 
-sim_delta = 1 * day
+sim_delta = 1 * year #long
+#sim_delta = 1 * day
 outgass_delta = 1 * day
 
 outgass_time = np.arange(0,outgass_tf ,outgass_delta)
@@ -34,12 +39,12 @@ Nout = len(sim_time)
 
 
 # WHYPLE Model Parameter ####
-body_radius = 1.0e1  # (m)
+body_radius = 1.0e3  # (m)
 albedo = 0.1066
 solar_luminosity = 4e26
 sublimation_heat = 1.88e6
 body_mass = 2.51e12
-particle_bulk_density = 0.6e3 # Using Halley densiity
+particle_bulk_density = 1.5e3 # Using Halley densiity
 gas_molecule_mass = 20 * 1.661e-24 * 1e-3
 surface_temperature_coeff = 300
 K_drag = 26.0 / 9.0

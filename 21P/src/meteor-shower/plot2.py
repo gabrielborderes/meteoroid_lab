@@ -8,6 +8,7 @@ import scipy.constants as constants
 import matplotlib.font_manager as font_manager
 from tqdm import tqdm
 from astropy import units
+import os
 from astropy.constants import GM_sun, au
 #try:
 #    from mpi4py import MPI
@@ -22,7 +23,7 @@ from astropy.constants import GM_sun, au
 #            pass
 
 
-from config import (
+from config_l import (
     solar_system_objects,
     Nog,
     init_sim_file,
@@ -79,10 +80,6 @@ for ti, t in tqdm(enumerate(extra_sim), total=len(extra_sim)):
 
 
 
-OB_id = 1
-part_i = 24
-
-
 my_cmap = plt.get_cmap("viridis")
 
 
@@ -100,8 +97,11 @@ with h5py.File(particle_file, 'r') as f:
 N_part = shell_part.shape[0]
 nb = len(solar_system_objects)
 first = True
+K_per = (2.*np.pi)/np.sqrt(GM_sun.value)
+
 n_file = 0
 for fl in range(factor_flush):
+
     print(f"Part_{fl} running")
     ephem_file = data_folder / f"part_{fl}/ephemerides_21P_all.h5"
 
@@ -127,14 +127,32 @@ for fl in range(factor_flush):
                 hf["body_Per"][()],
                 hf["Per"][()],
             ], axis=0)
+            # a = np.concatenate([
+            #     hf["body_Per"][()],
+            #     hf["a"][()],
+            # ], axis=0)
+            # e = np.concatenate([
+            #     hf["body_Per"][()],
+            #     hf["e"][()],
+            # ], axis=0)
 
-            dist_tmp = np.sqrt(x**2+y**2+z**2)
+        dist_tmp = np.sqrt(x**2+y**2+z**2)
 
-            Per = np.zeros((Per_tmp.shape[0],Per_tmp.shape[1]*factor_flush))
-            dist = np.zeros((Per_tmp.shape[0],Per_tmp.shape[1]*factor_flush))
+        Per = np.zeros((Per_tmp.shape[0],len(t)))
 
-            Per[:,:Per_tmp.shape[1]] = Per_tmp
-            dist[:,:Per_tmp.shape[1]] = dist_tmp
+        dist = np.zeros((Per_tmp.shape[0],len(t)))
+
+            # for i in range(a.shape[0]):
+            #     for j in range(a.shape[1]):
+            #         if i > 0:
+            #             if e[i,j] < 1.0:
+            #                 Per_n[i,j] = K_per*(a[i,j])**(3./2.)
+
+
+
+        Per[:,:Per_tmp.shape[1]] = Per_tmp
+        dist[:,:Per_tmp.shape[1]] = dist_tmp
+        n_sam_fl = Per_tmp.shape[1]
 
     else:
         with h5py.File(ephem_file, "r") as hf:
@@ -154,15 +172,35 @@ for fl in range(factor_flush):
                 hf["body_Per"][()],
                 hf["Per"][()],
             ], axis=0)
-            Per[:,fl*Per_tmp.shape[1]:(fl+1)*Per_tmp.shape[1]] = Per_tmp
-            dist[:,fl*Per_tmp.shape[1]:(fl+1)*Per_tmp.shape[1]] = dist_tmp
+            # a = np.concatenate([
+            #     hf["body_Per"][()],
+            #     hf["a"][()],
+            # ], axis=0)
+            # e = np.concatenate([
+            #     hf["body_Per"][()],
+            #     hf["e"][()],
+            # ], axis=0)
 
+        dist_tmp = np.sqrt(x**2+y**2+z**2)
 
+        Per[:,fl*n_sam_fl:(fl+1)*Per_tmp.shape[1]] = Per_tmp
+            #Per_n[1:,fl*n_sam_fl:(fl+1)*a.shape[1]] = K_per*(a[1:,:])**(3./2.)
+
+            # for i in range(a.shape[0]):
+            #     for j in range(a.shape[1]):
+            #         if i > 0:
+            #             if e[i,j] < 1.0:
+            #                 Per_n[i,fl*n_sam_fl + j] = K_per*(a[i,j])**(3./2.)
+            #             else:
+            #                 Per_n[i,fl*n_sam_fl + j] = 0.0
+
+       #
+        dist[:,fl*n_sam_fl:(fl+1)*Per_tmp.shape[1]] = dist_tmp
 
 
     x[x==0.0] = np.nan
     y[y==0.0] = np.nan
-    Per[Per==0.0] = np.nan
+    #Per[Per==0.0] = np.nan
     dist[dist==0.0] = np.nan
 
 
@@ -210,16 +248,18 @@ for fl in range(factor_flush):
         particle_span = 0.1
         #tt = 2007.843836+t[ti]/(3600.*24.*365.25)
         ax4.plot(t[:Per.shape[1]]/year, Per[nb-1]/year, color="blue", label=f"21P/Giacobini–Zinner")
-        ax4.scatter(t[ti]/year, Per[nb-1,ti]/year,  c="black")
-        ax4.scatter(np.ones_like(Per[nb:, ti])*t[ti]/year, Per[nb:,ti]/year,  c=np.log10(shell_part[:, 0]), cmap=my_cmap)
+        ax4.scatter(np.ones_like(Per[nb:,ti])*t[fl*n_sam_fl + ti]/year, Per[nb:,fl*n_sam_fl + ti]/year,  c=np.log10(shell_part[:, 0]), cmap=my_cmap)
+        ax4.scatter(t[fl*n_sam_fl + ti]/year, Per[nb-1,fl*n_sam_fl + ti]/year,  c="red")
+        #ax4.scatter(np.ones_like(Per_n[nb:,ti])*t[fl*n_sam_fl + ti]/year, Per_n[nb:, ti]/year,  c=np.log10(shell_part[:, 0]), cmap=my_cmap)
+        #ax4.scatter(np.ones_like(Per[:,ti])*t[fl*n_sam_fl + ti]/year, Per[:,fl*n_sam_fl + ti]/year,  c="gray")
         ax4.axhline(y=7.11552, color='r', linestyle='--')
         #ax4.set_xlim([ti, tf])
         ax4.set_xlabel("time (year)")
         ax4.set_ylabel("T (year)", color='blue')
 
-        ax5 = ax4.twinx()
-        ax5.plot(t[:Per.shape[1]]/year, dist[nb-1]/au.value, color="green", label="d (au)")
-        ax5.set_ylabel("d (au)", color='green')
+        #ax5 = ax4.twinx()
+        #ax5.plot(t[:Per.shape[1]]/year, dist[nb-1]/au.value, color="green", label="d (au)")
+        #ax5.set_ylabel("d (au)", color='green')
 
         tt = 49.5+t[ti]/(3600.*24.*365.25)
         ax1.set_xlabel("x (AU)", fontsize=sizefont)
@@ -375,7 +415,7 @@ for fl in range(factor_flush):
         ax2.set_xlim([-1.5 * zoom, 1.5 * zoom])
         ax2.set_ylim([-1.5 * zoom, 1.5 * zoom])
         ax3.set_xlim([-3.5 * zoom, 3.5 * zoom])
-        ax4.set_xlim([0,200])
+        ax4.set_xlim([0,t[-1]/year])
         ax4.set_ylim([5.9,7.7])
         ax3.set_ylim([-3.5 * zoom, 3.5 * zoom])
         ax1.set_xlim([
@@ -388,13 +428,16 @@ for fl in range(factor_flush):
         ])
 
         fig.savefig(plot_folder / f"t_int{n_file}.png", bbox_inches="tight")
-        n_file = n_file + 1
+
         ax1.clear()
         ax2.clear()
         ax3.clear()
         ax4.clear()
-        ax5.clear()
+        #ax5.clear()
         plt.close(fig)
+        cbar = None
+
+        n_file = n_file + 1
 
 
 #pbar.close()

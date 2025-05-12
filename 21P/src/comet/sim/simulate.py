@@ -5,6 +5,8 @@ import numpy as np
 import h5py
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
+from astropy.constants import GM_sun
+import seaborn as sns
 
 import os
 
@@ -55,6 +57,8 @@ def read_meteors(file_name):
         "NODEER",
         "ARGUP",
         "ARGUPER",
+        "M",
+        "MER",
     }
     for col in float_columns:
         if col in data:  # Evita erro caso a coluna não exista
@@ -102,7 +106,7 @@ minor_bodies = config["sim_param"]["minor_bodies"].split(", ")
 
 sim_back = config["sim_param"].getboolean("backward")
 collision = config["sim_param"].getboolean("collision")
-
+srp = config["sim_param"].getboolean("srp")
 fac_flush = config["sim_param"].getint("fac_flush")
 
 active_cl = config["clones"].getboolean("active")
@@ -247,24 +251,27 @@ else:
         pe = sim.particles["399"]
         EP = np.array([pe.x, pe.y, pe.z])
 
-        # FIND TRUE ANOMALY
-        seek_min = minimize(
-            func_dist,
-            x0=np.radians(0.0e0),
-            args=
-                (
-                sma,
-                ecc,
-                incl,
-                Ome,
-                ome,
-                EP,
-                ),
-            bounds=[(-2.*np.pi, 2.*np.pi)],
-            method='Nelder-Mead',
-        )
+        M = np.sqrt((sma*au_2_m)**3/GM_sun.value)*(2458063.5-2458371.765901935069)*24.*3600.
 
-        nu = seek_min.x[0]
+
+        # # FIND TRUE ANOMALY
+        # seek_min = minimize(
+        #     func_dist,
+        #     x0=np.radians(0.0e0),
+        #     args=
+        #         (
+        #         sma,
+        #         ecc,
+        #         incl,
+        #         Ome,
+        #         ome,
+        #         EP,
+        #         ),
+        #     bounds=[(-2.*np.pi, 2.*np.pi)],
+        #     method='Nelder-Mead',
+        # )
+        #
+        # nu = seek_min.x[0]
 
         hash_meteor = f"{data['CODE'][i]}"
         # ADD PARTICLE
@@ -275,7 +282,7 @@ else:
             inc= incl,
             Omega = Ome,
             omega = ome,
-            f = nu,
+            M = M,
             hash = hash_meteor
         )
         index.append(hash_meteor)
@@ -295,23 +302,26 @@ else:
                 ome = np.radians(data['ARGUP'][i] + \
                     (2.*np.random.rand() - 1)*data['ARGUPER'][i])
 
-                seek_min = minimize(
-                    func_dist,
-                    x0=np.radians(0.0e0),
-                    args=
-                        (
-                        sma,
-                        ecc,
-                        incl,
-                        Ome,
-                        ome,
-                        EP,
-                        ),
-                    bounds=[(-2.*np.pi, 2.*np.pi)],
-                    method='Nelder-Mead',
-                )
+                M = np.sqrt((sma*au_2_m)**3/GM_sun.value)*(2458063.5-(2458371.765901935069 + (2.*np.random.rand() - 1)*0.000032 ))*24.*3600.
 
-                nu = seek_min.x[0]
+
+                # seek_min = minimize(
+                #     func_dist,
+                #     x0=np.radians(0.0e0),
+                #     args=
+                #         (
+                #         sma,
+                #         ecc,
+                #         incl,
+                #         Ome,
+                #         ome,
+                #         EP,
+                #         ),
+                #     bounds=[(-2.*np.pi, 2.*np.pi)],
+                #     method='Nelder-Mead',
+                # )
+
+                # nu = seek_min.x[0]
                 hash_cl = f"{data['CODE'][i]}_cl_{j}"
                 sim.add(
                     m = 0.0e0,
@@ -320,7 +330,7 @@ else:
                     inc= incl,
                     Omega = Ome,
                     omega = ome,
-                    f = nu,
+                    M = M,
                     hash = hash_cl
                 )
                 index.append(hash_cl)

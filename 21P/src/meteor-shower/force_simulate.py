@@ -14,14 +14,31 @@ def record_coll(sim_pointer, collision):
 
     sim = sim_pointer.contents
 
-    ps = sim.particles
 
-    with open(collisionFile,'a') as f:
-        f.write(f'{sim.t}-{sim.particles[collision.p1].hash}-{sim.particles[collision.p2].hash}\n')
+
+    #with open(collisionFile,'a') as f:
+        #f.write(f'{sim.t}-{sim.particles[collision.p1].hash}-{sim.particles[collision.p2].hash}\n')
+
 
     if (sim.particles[collision.p1].m > 0.0):
-        return 2
+        ps = sim.particles[collision.p2]
+        if (sim.particles[collision.p2].m > 0.0):
+            ps2 = sim.particles[collision.p1]
+            R = np.sqrt((ps.x - ps2.x)**2+(ps.y - ps2.y)**2+(ps.z - ps2.z)**2)
+            #with open(collisionFile,'a') as f:
+                #f.write(f'main body collision- distance- {R} {ps.a} {ps.e} {ps.inc} {ps.Omega} {ps.omega} {ps.f}  \n')
+
+            return 0
+        else:
+            with open(f"data/{sim.particles[collision.p1].hash.value}.txt",'a') as f:
+                f.write(f'{sim.t} {ps.a} {ps.e} {ps.inc} {ps.Omega} {ps.omega} {ps.f} {ps.r} \n')
+
+            return 2
     else:
+        with open(f"data/{sim.particles[collision.p2].hash.value}.txt",'a') as f:
+            ps = sim.particles[collision.p1]
+            f.write(f'{sim.t} {ps.a} {ps.e} {ps.inc} {ps.Omega} {ps.omega} {ps.f} {ps.r} \n')
+
         return 1
 
 
@@ -43,7 +60,7 @@ except ImportError:
             pass
 
 
-from config import (
+from force_config import (
     data_folder,
     checkpoint,
     dictionary_file,
@@ -60,31 +77,28 @@ from config import (
     particle_file,
     ephem_file,
     factor_flush,
+    srp_active
 
 )
 
 #LONG_ARCH = True
-
-
-
-
+collisionFile = data_folder / 'closeRegister.txt'
 
 if size <= 1:
     filename = data_folder / "cache_21P_all.bin"
     save_file = ephem_file
-    collisionFile = data_folder / 'closeRegister.txt'
 
 else:
     filename = data_folder / f"cache_21P_{rank}.bin"
     save_file = f"ephemerides_21P_{rank}.h5"
-    collisionFile = data_folder / f'closeRegister_{rank}.txt'
 
 with open(collisionFile,'w') as f:
-    f.write(f'time;deltaR;rp;p1;p2\n')
+    f.write(f'\n')
 
 
 with h5py.File(particle_file, 'r') as f:
     shell_part = f["shell_part"][:]
+    #radius = f["radius"][:]
     N_activity = f["N_activity"][:]
     particle_velocities = f["particle_velocities"][:]
 
@@ -108,30 +122,24 @@ with open(dictionary_file,'w') as f:
 
 
 
-
-
-
-
-
 sim.move_to_com()
 # Configure simulation
 sim.integrator = "ias15"
 # Let's save it for next time
 # Note: sim.save_to_file() only saves the particle data, not the integrator settings, etc.
-sim.collision = "direct"
-sim.collision_resolve = record_coll
+
 
 # Set the integration time
 ps = sim.particles
 
 
 
-
-rebx = reboundx.Extras(sim)
-rf = rebx.load_force("radiation_forces")
-rebx.add_force(rf)
-rf.params["c"] = 2.99792458e8
-ps["Sun"].params["radiation_source"] = 1
+if srp_active:
+    rebx = reboundx.Extras(sim)
+    rf = rebx.load_force("radiation_forces")
+    rebx.add_force(rf)
+    rf.params["c"] = 2.99792458e8
+    ps["Sun"].params["radiation_source"] = 1
 
 
 
@@ -176,6 +184,10 @@ for ti, t in enumerate(sim_time):
     sim.integrate(t)
     pbar.update(1)
 
+    if ti == N_activity.shape[0]:
+        sim.collision = "direct"
+        sim.collision_resolve = record_coll
+
 
     if ti < N_activity.shape[0]:
         pbar.set_description(f"added {N_activity[ti]} particles")
@@ -209,28 +221,32 @@ for ti, t in enumerate(sim_time):
                 vz=part_vz,
                 hash=f"{id_part}",
             )
-            ps[f"{id_part}"].r = 0.0e0
+            ps[f"{id_part}"].r = shell_part[id_part, 0]
             with open(dictionary_file,'a') as f:
                 f.write(f"{id_part}, hash: {sim.particles[f"{id_part}"].hash}\n")
 
-            grain_radius = shell_part[id_part, 0]  # grain radius in m
-            Q_pr = 1.0
-            density = particle_bulk_density
-            # grain_radius = 1.e-5 # grain radius in m
-            # density = 1000. # kg/m^3 = 1g/cc
-            beta = rebx.rad_calc_beta(
-                constants.G,
-                rf.params["c"],
-                ps[0].m,
-                solar_luminosity,
-                grain_radius,
-                density,
-                Q_pr,
-            )
-            ps[f"{id_part}"].params["beta"] = beta
+            if srp_active:
+                grain_radius = shell_part[id_part, 0]  # grain radius in m
+                Q_pr = 1.0
+                density = particle_bulk_density
+                # grain_radius = 1.e-5 # grain radius in m
+                # density = 1000. # kg/m^3 = 1g/cc
+                beta = rebx.rad_calc_beta(
+                    constants.G,
+                    rf.params["c"],
+                    ps[0].m,
+                    solar_luminosity,
+                    grain_radius,
+                    density,
+                    Q_pr,
+                )
+                ps[f"{id_part}"].params["beta"] = beta
             # = 3.*luminosity*Q_pr/(16.*np.pi*sim.G*1.e9*ps[0].m*rf.params["c"]*density*grain_radius)
 
             id_part += 1
+
+
+
 
     for bind in range(nb):
         p = ps[f"{solar_system_objects[bind]}"]
@@ -308,8 +324,8 @@ for ti, t in enumerate(sim_time):
             hf.create_dataset("i", data=oe_i)
             hf.create_dataset("O", data=oe_O)
             hf.create_dataset("o", data=oe_o)
-            hf.create_dataset("f", data=oe_a)
-            hf.create_dataset("M", data=oe_a)
+            hf.create_dataset("f", data=oe_f)
+            hf.create_dataset("M", data=oe_M)
             hf.create_dataset("Per", data=oe_Per)
 
         count_file = int(count_file+1)

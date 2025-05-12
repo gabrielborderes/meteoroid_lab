@@ -16,7 +16,7 @@ N_part = shell_part.shape[0]
 
 nb = len(solar_system_objects)
 
-for fl in range(factor_flush):
+for fl in range(factor_flush+1):
 
     h5_files = list(data_folder.glob(f"part_{fl}/ephemerides_21P_*.h5"))
     ephem_file = data_folder / f"part_{fl}/ephemerides_21P_all.h5"
@@ -84,3 +84,7 @@ for fl in range(factor_flush):
         for key in data_sets:
             hf.create_dataset(key, data=data_sets[key])
         hf.create_dataset("t", data=t)
+
+
+    for file in h5_files:
+        file.unlink()

@@ -233,6 +233,14 @@ for ti, t in enumerate(sim_time):
         if pind >= id_part:
             break
         p = ps[f"{pind}"]
+
+        try:
+            p = ps[f"{pind}"]
+        except ParticleNotFound:
+            #print(f"Partícula {pind} não encontrada.")
+            pass
+
+
         x[nb + arr_ind][count] = p.x
         y[nb + arr_ind][count] = p.y
         z[nb + arr_ind][count] = p.z

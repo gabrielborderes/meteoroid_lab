@@ -36,7 +36,13 @@ if not init_sim_file.is_file():
     # Get data from NASA Horizons
     try:
         sim.units = ("m", "s", "kg")
-        date = "JD2409037.09701"
+        #date = "JD2409037.09701" # Ejection during the resonace
+        #date = "JD2414147.09701"  # Ejection out of the resonace (5110 days)
+        #date = "JD2384273.14701"
+        #date = "JD2442526.5000000" # 25 years ago
+        date = "JD2430890.5000000"
+        print(solar_system_objects)
+
         for obj in solar_system_objects:
             sim.add(obj, date=date, hash=obj)
 
@@ -49,11 +55,19 @@ if not init_sim_file.is_file():
         if sim.particles[obj].m <= 0.0:
             sim.particles[obj].m = 1.0
     sim.N_active = sim.N - 1
+    sim.particles['Mercury'].r = 2440000.
+    sim.particles['Venus'].r = 6052000.
+    sim.particles['Earth'].r = 0.00983409792318912 * constants.au
+    sim.particles['Mars'].r = 3390000.
+    sim.particles['Jupiter'].r = 69911000. #0.3381 * constants.au
+    sim.particles['Saturn'].r = 58232000.
+    sim.particles['Uranus'].r = 25362000.
+    sim.particles['Neptune'].r = 24622000.
     sim.save_to_file(str(init_sim_file))
 
 
 
-sim.particles['Earth'].r = 0.00983409792318912 * constants.au
+
 sim.particles[solar_system_objects[-1]].mass = body_mass
 n_bd = len(solar_system_objects)
 ps = sim.particles
