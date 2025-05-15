@@ -30,7 +30,7 @@ f_orbele = f_plot / "orbital_elements/a"
 f_orbele.mkdir(parents=True, exist_ok=True)
 
 config = configparser.ConfigParser()
-config.read("param_EN220821_011118.config")
+config.read("config/param_EN220821_011118.config")
 
 input_files = config["system"]["save_file"]
 
@@ -149,7 +149,7 @@ else:
     n_G1A = 0
 
 
-
+    ax.set_xlim([3.25,3.75])
     for bd in range(ni_met,len(index)):
         if met_group [bd-ni_met] == "G1":
             color = cmap_G1(norm_G1(a_values[n_G1]))

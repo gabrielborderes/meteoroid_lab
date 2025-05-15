@@ -22,11 +22,11 @@ day = 24.0 * 3600.0
 year = 365.25 * day
 
 #sim_tf = 10000. * year #long
-sim_tf = 2000. * year
+sim_tf = 4000. * year
 #sim_tf = 25. * year
 outgass_tf = 7. * year
 
-sim_delta = 100 * year #long
+sim_delta = 1 * year #long
 #sim_delta = 1 * day
 outgass_delta = 1 * day
 
